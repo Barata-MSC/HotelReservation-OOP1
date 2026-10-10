@@ -8,6 +8,7 @@ A Java-based hotel reservation web application for customers and hotel staff. Cu
 
 - [Project Goals](#project-goals)
 - [Planned Features](#planned-features)
+- [Website Pages](#website-pages)
 - [Technology Stack](#technology-stack)
 - [Architecture](#architecture)
 - [Core OOP Design](#core-oop-design)
@@ -45,6 +46,66 @@ Online reservations mean that customers can book through the website; they do **
 - [ ] Check guests in and out.
 - [ ] Calculate bills, process cash payments, calculate change, and generate receipts.
 - [ ] Monitor available and occupied rooms, room types, cleaning needs, maintenance, and out-of-service rooms.
+
+## Website Pages
+
+The following is the **proposed page plan** for the browser-based system. These are planned pages, not a claim that they have already been implemented. Combine pages or rename them as the design develops.
+
+### Customer-facing pages
+
+| Page | Purpose |
+|---|---|
+| **Home** | Introduce the hotel and provide a clear entry point to room search. |
+| **Rooms / Room Listings** | Browse rooms, room types, capacity, descriptions, and nightly rates. |
+| **Room Details** | Show details for a selected room and let the customer continue to date selection. |
+| **Search Availability** | Enter check-in/check-out dates and guest requirements; show rooms available for the full date range. |
+| **Reservation Form** | Collect the guest's name, contact number, email, selected room, and stay dates. |
+| **Reservation Confirmation** | Show the booking reference and current reservation status after a successful submission. |
+| **Find / View Reservation** *(optional)* | Let a guest look up a booking and cancel it if the system's rules permit. Protect guest information when looking up bookings. |
+
+### Staff and administrator pages
+
+| Page | Purpose |
+|---|---|
+| **Staff Login** | Authenticate authorized hotel staff. |
+| **Staff Dashboard** | Provide a summary and navigation to room, reservation, and monitoring functions. |
+| **Room Management** | Add, edit, search, and view room records. |
+| **Reservation Management** | Review online and walk-in reservations, and manage their permitted status changes. |
+| **Check-in / Check-out** | Process arrivals and departures and update reservation and room status. |
+| **Billing and Receipt** | Calculate the bill using the specified guest classification rules, accept cash payment, calculate change, and show a receipt. |
+| **Room Monitoring** | Display available and occupied rooms, room counts by type, cleaning needs, maintenance, and out-of-service rooms. |
+| **Housekeeping** | Update room status to Clean, Dirty, Under Maintenance, or Out of Service. |
+
+### Page and route naming suggestion
+
+If using Spring Boot with Thymeleaf, keep page templates in `src/main/resources/templates/`. A possible organization is:
+
+```text
+templates/
+├── customer/
+│   ├── home.html
+│   ├── rooms.html
+│   ├── room-details.html
+│   ├── availability.html
+│   ├── reservation-form.html
+│   ├── reservation-confirmation.html
+│   └── find-reservation.html
+├── staff/
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── rooms.html
+│   ├── reservations.html
+│   ├── check-in-check-out.html
+│   ├── billing.html
+│   ├── monitoring.html
+│   └── housekeeping.html
+└── fragments/
+    ├── header.html
+    ├── footer.html
+    └── navigation.html
+```
+
+This template layout is a starting suggestion. Controllers, templates, and authorization rules should be added as each feature is implemented. A page being present in this plan does not mean its functionality is complete.
 
 ## Technology Stack
 
