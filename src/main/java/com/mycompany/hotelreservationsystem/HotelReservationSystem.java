@@ -4,13 +4,14 @@
 
 package com.mycompany.hotelreservationsystem;
 
-/**
- *
- * @author Admin
- */
+import javax.swing.SwingUtilities;
+
 public class HotelReservationSystem {
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        SwingUtilities.invokeLater(() -> {
+            WelcomeScreen welcomeScreen = new WelcomeScreen();
+            welcomeScreen.setVisible(true);
+        });
     }
 }
