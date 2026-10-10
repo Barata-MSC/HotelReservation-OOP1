@@ -4,10 +4,8 @@
 
 package com.mycompany.hotelreservationsystem;
 
-/**
- *
- * @author Admin
- */
+import javax.swing.SwingUtilities;
+
 public class HotelReservationSystem {
 
     public static void printWelcomeHomeScreen() {
@@ -19,7 +17,10 @@ public class HotelReservationSystem {
     }
 
     public static void main(String[] args) {
-        printWelcomeHomeScreen();
-        printOurFinalProject();
+        SwingUtilities.invokeLater(() -> {
+            WelcomeScreen welcomeScreen = new WelcomeScreen();
+            welcomeScreen.setVisible(true);
+        });
+     
     }
 }
