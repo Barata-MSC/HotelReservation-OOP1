@@ -10,7 +10,16 @@ package com.mycompany.hotelreservationsystem;
  */
 public class HotelReservationSystem {
 
+    public static void printWelcomeHomeScreen() {
+        System.out.println("Welcome to Hotel Reservation Home Screen!");
+    }
+
+    public static void printOurFinalProject() {
+        System.out.println("Our final project");
+    }
+
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        printWelcomeHomeScreen();
+        printOurFinalProject();
     }
 }
