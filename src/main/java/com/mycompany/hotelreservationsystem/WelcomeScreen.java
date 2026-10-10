@@ -85,9 +85,9 @@ public class WelcomeScreen extends JFrame {
         return center;
     }
 
-    /** TODO: open your next screen (login / dashboard) here. */
     private void onStart() {
-        JOptionPane.showMessageDialog(this, "Start clicked - open the next screen here.");
+        new LoginFrame().setVisible(true);
+        dispose();
     }
 
     private static JPanel solidBar(Color color, int height) {
