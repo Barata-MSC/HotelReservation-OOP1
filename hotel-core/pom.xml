@@ -9,7 +9,7 @@
     <artifactId>hotel-core</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <maven.compiler.release>26</maven.compiler.release>
+        
         <exec.mainClass>com.hotel.core.HotelCore</exec.mainClass>
     </properties>
 </project>

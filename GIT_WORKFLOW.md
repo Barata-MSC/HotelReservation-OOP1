@@ -1,12 +1,41 @@
 # Git and GitHub Workflow
 
-This guide is intended for the Hotel Reservation System team using Git in PowerShell, Git Bash, or the NetBeans terminal. Most commands work in all three; Windows-specific examples are marked.
+This guide is for the Object-Oriented Hotel Reservation System team using Git with Apache NetBeans or Visual Studio Code. Commands can be run from Git Bash, PowerShell, or an IDE terminal, unless otherwise noted.
 
-## 1. Everyday workflow (recommended)
+The repository is a Maven multi-module project:
+
+- `hotel-core` — shared models, repositories, services, exceptions, database configuration, schema, and business rules.
+- `hotel-desktop` — Java Swing application for receptionists and hotel staff. The first implementation focus is walk-in reservations and staff workflows.
+- `hotel-web` — future Spring Boot/Thymeleaf customer website. It will be added in the final phase and use `hotel-core`.
+
+Run Maven commands from the repository root, where the parent `pom.xml` is located, unless a command explicitly says otherwise.
+
+## 1. Important: the repository history was reset
+
+The `main` branch history was reset and force-pushed. **All collaborators must create a fresh clone of the current GitHub repository.** Do not continue using an old clone as the basis for new work.
+
+If an old clone contains uncommitted or unpushed work, back it up outside the repository first. Do not merge the old clone's outdated history into the reset `main` unless the repository owner explicitly coordinates that recovery.
+
+## 2. Clone the current repository
+
+Clone the current GitHub repository:
+
+```bash
+git clone https://github.com/Barata-MSC/HotelReservation-OOP1.git
+cd HotelReservation-OOP1
+git status
+git rev-parse --show-toplevel
+```
+
+If the repository URL or folder name has changed, use the URL shown on the repository's GitHub **Code** menu and the folder name created by `git clone`.
+
+Open the **root/parent `pom.xml`** in NetBeans or VS Code. Do not treat `hotel-core` or `hotel-desktop` as the parent project. The root project should declare the Maven modules.
+
+## 3. Everyday workflow
 
 ### A. Update `main` and create a task branch
 
-Start each new task from the latest shared `main` branch:
+Start each task from the latest shared `main` branch:
 
 ```bash
 git switch main
@@ -14,115 +43,130 @@ git pull --ff-only origin main
 git switch -c feature/short-task-name
 ```
 
-Example:
+Use a branch that describes one task. Examples aligned with the current project plan:
 
-```bash
-git switch main
-git pull --ff-only origin main
-git switch -c feature/room-management
-```
-
-Branch naming suggestions:
-
-- `feature/room-management`
-- `feature/reservation-scheduling`
-- `feature/billing`
+- `feature/core-room-model`
+- `feature/room-repository`
+- `feature/walk-in-reservations`
+- `feature/desktop-room-management`
+- `feature/desktop-billing`
+- `feature/desktop-housekeeping`
+- `feature/availability-validation`
+- `feature/online-reservations`
 - `fix/date-overlap-validation`
 - `docs/readme-setup`
 
-Use lowercase names with hyphens. Do not include spaces in branch names.
+Use lowercase names with hyphens. Avoid spaces. Since `hotel-core` is shared, coordinate changes to its public methods, models, and database schema with teammates working in `hotel-desktop` or, later, `hotel-web`.
 
-### B. Review your changes before staging
+### B. Check the changes
+
+Before staging files:
 
 ```bash
 git status
 git diff
 ```
 
-`git status` shows your branch and whether files are modified, staged, or untracked. `git diff` previews unstaged changes.
+`git status` shows the current branch and modified, staged, or untracked files. `git diff` previews changes that have not been staged.
 
-### C. Stage and commit
+### C. Build and test the relevant Maven modules
 
-Prefer adding specific files when possible:
+Run these commands from the repository root. The root Maven build should be configured to include the existing modules.
+
+Build the current multi-module project and run its configured tests:
 
 ```bash
-git add src/main/java/com/hotel/service/ReservationService.java
+mvn clean install
+```
+
+Test the shared core:
+
+```bash
+mvn -pl hotel-core test
+```
+
+Test the desktop module and also build required modules, including `hotel-core`:
+
+```bash
+mvn -pl hotel-desktop -am test
+```
+
+When `hotel-web` is created, module-specific commands can target it in the same way, for example:
+
+```bash
+mvn -pl hotel-web -am test
+```
+
+Use only commands for modules that exist in the checked-out branch. If a Maven command fails, resolve the failure or document the blocker before requesting a merge. Do not mark a feature complete merely because the code compiles; test its behavior too.
+
+### D. Stage and commit
+
+Prefer staging the files you intended to change:
+
+```bash
+git add hotel-core/src/main/java/com/hotel/core/service/AvailabilityService.java
 git diff --cached
 git commit -m "Add reservation availability validation"
 ```
 
-To stage all intended changes, including file deletions, use:
+The example path and class name are illustrative: stage the actual files in your branch. To stage all intended changes, including deletions, use:
 
 ```bash
 git add -A
 git diff --cached
-git commit -m "Add room management"
+git commit -m "Add walk-in reservation workflow"
 ```
 
-Check the staged diff before committing. Avoid `git add .` without reviewing the status, as it can accidentally stage secrets, generated files, or unrelated work if your ignore rules are incomplete.
+Always inspect the staged diff before committing. Do not commit passwords, local database credentials, generated output, IDE-private settings, or unrelated changes.
 
-### D. Push the branch
+### E. Push your branch
 
 For the first push of a new branch:
 
 ```bash
-git push -u origin feature/room-management
+git push -u origin feature/short-task-name
 ```
 
-After the upstream is set, you can usually use:
+After the upstream is set, you can usually run:
 
 ```bash
 git push
 ```
 
-### E. Open a pull request on GitHub
+### F. Open a pull request
 
-1. Open the repository on GitHub.
-2. Create a pull request with your feature branch as the **compare/source** branch and `main` as the **base/target** branch.
-3. Describe what changed, why it changed, and how it was tested.
-4. Review the diff, resolve feedback, and wait for teammates or checks as required.
-5. Merge only when the team is satisfied.
+On GitHub:
 
-Do not normally commit directly to `main`.
+1. Open the repository and create a pull request.
+2. Set the feature branch as the **compare/source** branch and `main` as the **base/target** branch.
+3. Describe what changed, why it changed, and which tests or Maven commands you ran.
+4. Review the diff and resolve feedback with your team.
+5. Merge only after review and successful checks, as applicable.
 
-### F. After the pull request is merged
+Do not normally commit directly to `main`. Keep pull requests focused and small enough for teammates to review.
+
+### G. After the pull request is merged
+
+Update your local `main` and remove the local feature branch:
 
 ```bash
 git switch main
 git pull --ff-only origin main
-git branch -d feature/room-management
+git branch -d feature/short-task-name
 git fetch origin --prune
 ```
 
-GitHub may automatically delete the remote branch after merging. If it does not and the team intends to delete it, use:
+GitHub may automatically delete the remote branch after merge. If it does not, and the team agrees to remove it:
 
 ```bash
-git push origin --delete feature/room-management
+git push origin --delete feature/short-task-name
 ```
 
-`git branch -d` deletes a local branch only. It does not delete a branch on GitHub.
+`git branch -d` deletes a local branch only; it does not delete a branch on GitHub.
 
-## 2. Clone a repository for the first time
+## 4. Keeping your branch up to date
 
-```bash
-git clone <GITHUB_REPOSITORY_URL>
-cd <REPOSITORY_FOLDER>
-git status
-```
-
-`git clone` downloads the repository and its history. It is not the same as `git pull`. Do not run `git init` inside an already cloned repository.
-
-Useful navigation commands:
-
-```bash
-pwd       # Show current directory in Git Bash/most Unix-like terminals
-ls        # List files (also works as a PowerShell alias)
-cd <DIR>  # Move into a directory
-```
-
-## 3. If `main` has new changes while you are working
-
-First save or commit your own work. Then fetch remote updates:
+If `main` changes while you are working, first save your work with a commit or safely stash it. Then fetch and integrate the latest `main` into your feature branch:
 
 ```bash
 git status
@@ -132,55 +176,55 @@ git fetch origin
 git merge origin/main
 ```
 
-If the merge reports conflicts, open each conflicted file, resolve the conflict markers, then stage the resolved files and finish the merge as Git instructs. Run tests before pushing. If you are unsure how to resolve a conflict, ask the teammate responsible for the affected code rather than discarding their changes.
+Only commit the work-in-progress if it is safe and appropriate to share on the branch; otherwise use `git stash push -u -m "work in progress"` and restore it after updating. If a merge reports conflicts, open each conflicted file, resolve the conflict markers carefully, stage the resolved files, and finish the merge as Git instructs. Run relevant tests before pushing.
 
-`git pull` fetches and integrates changes. It does **not** mean “save my work to GitHub”; use `git push` to upload your commits.
+Do not resolve a conflict by automatically discarding another teammate's work. Ask the teammate responsible for the affected file when the intended result is unclear.
 
-## 4. Check branches
+`git pull` fetches and integrates changes. It does **not** upload your commits; use `git push` to publish them to GitHub.
+
+## 5. Team coordination for the multi-module project
+
+- **Work on walk-in reservation and staff features first.** The initial implementation focus is `hotel-core` plus `hotel-desktop`; online booking in `hotel-web` comes last.
+- **Keep business rules in `hotel-core`.** Do not independently reimplement availability, reservation validation, guest-classification rules, or billing formulas inside Swing UI code. The future website must also call the core services.
+- **Coordinate shared-core changes.** If a change alters a model, service method, enum, schema, or repository contract, tell teammates whose modules depend on it and include any necessary updates and tests in the pull request.
+- **Coordinate database schema changes.** `hotel-core/src/main/resources/db/schema.sql` is shared by both applications. Discuss table or column changes before merging, and note any required local database update in the pull request.
+- **Avoid overlapping edits.** When possible, agree on file or module ownership before multiple people change the same files.
+- **Build from the repository root.** This verifies that the parent POM and module dependencies work together.
+
+## 6. Useful branch and repository commands
 
 ```bash
-git branch             # Local branches
-git branch -a          # Local and known remote-tracking branches
-git fetch origin --prune
+git branch                     # List local branches
+git branch -a                  # List local and remote-tracking branches
+git fetch origin --prune       # Refresh remote branches and prune deleted references
+git switch main                # Switch to main
+git switch -c feature/name     # Create and switch to a new branch
+git remote -v                  # Show configured remotes
+git log --oneline --decorate -10  # Review recent commits
 ```
 
 Delete a merged local branch:
 
 ```bash
-git branch -d feature/room-management
+git branch -d feature/short-task-name
 ```
 
-Use `-D` only when you deliberately want to force-delete a local branch that Git considers unmerged. It can discard the branch's easy-to-reach reference to unmerged work.
+Use `git branch -D` only when you deliberately want to force-delete an unmerged local branch and have confirmed that its work is no longer needed.
 
-## 5. Start a brand-new local repository (only if needed)
+## 7. `.gitignore` and local files
 
-Use this only when the folder is not already a Git repository and the GitHub repository is empty:
+The repository's `.gitignore` should exclude generated Maven output and local IDE files, including:
 
-```bash
-git init
-git add -A
-git status
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin <GITHUB_REPOSITORY_URL>
-git push -u origin main
+```gitignore
+**/target/
+nbproject/private/
 ```
 
-If the GitHub repository already contains an initial README or other commit, do not blindly follow this sequence; clone the repository first or reconcile the histories deliberately.
+Keep the existing `.gitignore` rules as well. `target/` contains generated build output and should not be committed. `nbproject/private/` contains local NetBeans project settings and should not be shared as project source.
 
-## 6. Change the remote repository URL
+Do not commit local passwords, tokens, private connection settings, or real guest data. If a secret has already been committed, removing it in a later commit does not erase it from Git history. Rotate or revoke the secret and inform the repository owner.
 
-```bash
-git remote -v
-git remote set-url origin <NEW_GITHUB_REPOSITORY_URL>
-git remote -v
-```
-
-Check the URL carefully before pushing so that you do not upload the project to the wrong repository.
-
-## 7. Ignore files and protect secrets
-
-Add sensitive and generated files to `.gitignore` before committing them. For example, exclude `.env`, local-only configuration, and Maven output. If `.env` is already tracked, remove it from the Git index while keeping the local file:
+If `.env` is already tracked and should become local-only, remove it from Git's index while keeping the local file:
 
 ```bash
 git rm --cached .env
@@ -188,45 +232,46 @@ git add .gitignore
 git commit -m "Stop tracking local environment file"
 ```
 
-**Important:** this does not erase the file or secrets from earlier Git history. If an actual password, token, or key was committed, revoke or rotate it immediately and notify the team.
-
-## 8. Dangerous cleanup commands — avoid for routine work
+## 8. Dangerous commands — do not use for routine cleanup
 
 ### `git reset --hard origin/main`
 
-This forces the current tracked working tree and branch state to match `origin/main`; uncommitted changes to tracked files can be lost. It is not a normal “cancel” command. Check `git status` and back up any work you need before using a reset.
+This changes the current tracked working tree and branch state to match `origin/main`. Uncommitted changes to tracked files can be lost. Check `git status` and back up work before considering a reset. It is not a routine way to cancel a single edit.
 
 ### `git clean -fdx`
 
-This permanently removes untracked files and ignored files, which can include local settings, `.env` files, and generated or downloaded content. Preview first:
+This permanently removes untracked and ignored files, potentially including local configuration, `.env` files, and generated or downloaded content. Preview first:
 
 ```bash
 git clean -ndx
 ```
 
-Only run `git clean -fdx` when you have inspected the preview and are certain every listed file can be deleted. Most contributors will never need this command.
+Only run `git clean -fdx` after inspecting the preview and confirming that every listed file can be deleted. Most contributors will not need this command.
 
-### Removing the `.git` directory
+### Deleting the `.git` directory
 
-PowerShell's `Remove-Item -Recurse -Force .git` removes the local repository metadata and history for that folder. Do not use it to fix ordinary Git problems. Back up the project and use it only when you intentionally want to detach the folder from Git.
+Removing `.git` detaches that folder from its repository metadata. Do not do this to fix ordinary Git problems. Use a fresh clone when appropriate, and back up needed local work first.
 
-### PowerShell execution policy
+### Force-pushing
 
-`Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` is a PowerShell configuration change, not a Git command, and is not normally required for the Git workflow above. Do not change it unless a specific, understood PowerShell script policy issue requires it.
+Do not force-push to `main`. The repository owner has already reset its history; normal team work should use feature branches and pull requests. Force-pushing can overwrite published history and disrupt other collaborators.
 
 ## 9. Quick reference
 
 | Goal | Command |
 |---|---|
-| Check current changes | `git status` |
+| Check working tree | `git status` |
 | Preview unstaged changes | `git diff` |
-| Stage selected file | `git add <file>` |
+| Stage a selected file | `git add <file>` |
 | Stage all intended changes | `git add -A` |
 | Preview staged changes | `git diff --cached` |
-| Commit | `git commit -m "Describe change"` |
-| Push first time on branch | `git push -u origin <branch>` |
+| Commit changes | `git commit -m "Describe change"` |
+| Push a branch for the first time | `git push -u origin <branch>` |
 | Push later commits | `git push` |
-| Download/integrate updates | `git pull --ff-only origin main` (while on `main`) |
-| Refresh remote branch references | `git fetch origin --prune` |
+| Update local `main` | `git switch main` then `git pull --ff-only origin main` |
+| Fetch remote branch updates | `git fetch origin --prune` |
 | Switch branch | `git switch <branch>` |
-| Create and switch to branch | `git switch -c feature/<name>` |
+| Create a task branch | `git switch -c feature/<name>` |
+| Test shared core | `mvn -pl hotel-core test` |
+| Test desktop with required modules | `mvn -pl hotel-desktop -am test` |
+| Build the multi-module project | `mvn clean install` |
