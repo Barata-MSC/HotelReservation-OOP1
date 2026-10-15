@@ -18,6 +18,15 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 - `hotel-web` is planned for the final phase and is customer-facing only. Staff operations must not be exposed there.
 - The desktop dashboard is staff-only navigation and an overview, not a second implementation of room or reservation rules.
 
+## Desktop window and navigation
+
+- `HotelDesktop.java` is the only `JFrame`; it owns the application window.
+- All other desktop screens are `JPanel` instances hosted inside that frame.
+- Keep screens in the existing `CardLayout` and switch between them when buttons are clicked. Do not create a new frame or rebuild/reload the screens for navigation; switching panels keeps the window and screen state in place.
+- Keep the NetBeans `.form` files alongside their Java screens. Do not delete or remove them as part of UI changes; they are part of the desktop project's GUI Builder setup.
+- Preserve the single-window navigation pattern: buttons should switch the visible `JPanel` through `HotelDesktop`'s `CardLayout`, not create another `JFrame` or reconstruct the window/screens.
+- When changing a screen managed by the GUI Builder, keep its `.form` and Java source synchronized so the form can continue to be opened and edited safely.
+
 ## Staff screen flow
 
 The whole-system flowchart is: Welcome -> staff username/password -> authenticate against the Users table and compare the password hash -> load the staff profile and role -> Home Dashboard. From the dashboard, staff can open room management, room monitoring, housekeeping, walk-in reservations, online reservation review, check-in, and check-out. Logout returns to the start of the staff flow.
