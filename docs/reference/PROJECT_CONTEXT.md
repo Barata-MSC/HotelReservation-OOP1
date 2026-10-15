@@ -51,3 +51,5 @@ The illustrative room counts are internally consistent: 27 total rooms (8 Single
 ## UI-only implementation scope
 
 The dashboard intentionally does not query a database, calculate availability, process reservations, validate credentials, or execute room-state transitions. Navigation items and quick-action buttons are visual placeholders until their respective documented screens and core services are implemented.
+
+The room-monitoring screen and dashboard share the same in-memory sample room inventory, so their status counts stay consistent as rooms are cycled between statuses. Changes are not persisted and do not implement the production room-state rules.
