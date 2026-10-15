@@ -1,79 +1,81 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 
 <Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JPanelFormInfo">
   <Properties>
-    <Property name="background" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-      <Color blue="26" green="1b" red="1f" type="rgb"/>
+    <Property name="background" type="java.awt.Color"
+      editor="org.netbeans.beaninfo.editors.ColorEditor">
+      <Color blue="26" green="1b" red="1f" type="rgb" />
     </Property>
-    <Property name="preferredSize" type="java.awt.Dimension" editor="org.netbeans.beaninfo.editors.DimensionEditor">
-      <Dimension width="1020" height="820"/>
+    <Property name="preferredSize" type="java.awt.Dimension"
+      editor="org.netbeans.beaninfo.editors.DimensionEditor">
+      <Dimension width="1020" height="820" />
     </Property>
   </Properties>
   <SyntheticProperties>
-    <SyntheticProperty name="formSizePolicy" type="int" value="1"/>
+    <SyntheticProperty name="formSizePolicy" type="int" value="1" />
   </SyntheticProperties>
   <AuxValues>
-    <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0"/>
-    <AuxValue name="FormSettings_autoSetComponentName" type="java.lang.Boolean" value="false"/>
-    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true"/>
-    <AuxValue name="FormSettings_generateMnemonicsCode" type="java.lang.Boolean" value="false"/>
-    <AuxValue name="FormSettings_i18nAutoMode" type="java.lang.Boolean" value="false"/>
-    <AuxValue name="FormSettings_layoutCodeTarget" type="java.lang.Integer" value="1"/>
-    <AuxValue name="FormSettings_listenerGenerationStyle" type="java.lang.Integer" value="3"/>
-    <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false"/>
-    <AuxValue name="FormSettings_variablesModifier" type="java.lang.Integer" value="2"/>
+    <AuxValue name="FormSettings_autoResourcing" type="java.lang.Integer" value="0" />
+    <AuxValue name="FormSettings_autoSetComponentName" type="java.lang.Boolean" value="false" />
+    <AuxValue name="FormSettings_generateFQN" type="java.lang.Boolean" value="true" />
+    <AuxValue name="FormSettings_generateMnemonicsCode" type="java.lang.Boolean" value="false" />
+    <AuxValue name="FormSettings_i18nAutoMode" type="java.lang.Boolean" value="false" />
+    <AuxValue name="FormSettings_layoutCodeTarget" type="java.lang.Integer" value="1" />
+    <AuxValue name="FormSettings_listenerGenerationStyle" type="java.lang.Integer" value="3" />
+    <AuxValue name="FormSettings_variablesLocal" type="java.lang.Boolean" value="false" />
+    <AuxValue name="FormSettings_variablesModifier" type="java.lang.Integer" value="2" />
   </AuxValues>
   <Layout>
     <DimensionLayout dim="0">
       <Group type="103" groupAlignment="0" attributes="0">
         <Group type="102" alignment="0" attributes="0">
-          <EmptySpace min="-2" pref="152" max="-2" attributes="0"/>
+          <EmptySpace min="-2" pref="152" max="-2" attributes="0" />
           <Group type="103" groupAlignment="0" attributes="0">
             <Group type="102" alignment="0" attributes="0">
-              <Component id="logoTile" min="-2" pref="52" max="-2" attributes="0"/>
-              <EmptySpace min="-2" pref="14" max="-2" attributes="0"/>
+              <Component id="logoTile" min="-2" pref="52" max="-2" attributes="0" />
+              <EmptySpace min="-2" pref="14" max="-2" attributes="0" />
               <Group type="103" groupAlignment="0" attributes="0">
-                <Component id="lblBrand" alignment="0" min="-2" max="-2" attributes="0"/>
-                <Component id="lblBrandSub" alignment="0" min="-2" max="-2" attributes="0"/>
+                <Component id="lblBrand" alignment="0" min="-2" max="-2" attributes="0" />
+                <Component id="lblBrandSub" alignment="0" min="-2" max="-2" attributes="0" />
               </Group>
             </Group>
-            <Component id="lblHeadline1" alignment="0" min="-2" max="-2" attributes="0"/>
-            <Component id="lblHeadline2" alignment="0" min="-2" max="-2" attributes="0"/>
-            <Component id="lblTagline" alignment="0" min="-2" max="-2" attributes="0"/>
-            <Component id="lblDescription" alignment="0" min="-2" max="-2" attributes="0"/>
+            <Component id="lblHeadline1" alignment="0" min="-2" max="-2" attributes="0" />
+            <Component id="lblHeadline2" alignment="0" min="-2" max="-2" attributes="0" />
+            <Component id="lblTagline" alignment="0" min="-2" max="-2" attributes="0" />
+            <Component id="lblDescription" alignment="0" min="-2" max="-2" attributes="0" />
             <Group type="102" alignment="0" attributes="0">
-              <EmptySpace min="-2" pref="52" max="-2" attributes="0"/>
-              <Component id="startButton" min="-2" pref="240" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="52" max="-2" attributes="0" />
+              <Component id="startButton" min="-2" pref="240" max="-2" attributes="0" />
             </Group>
           </Group>
-          <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+          <EmptySpace min="0" pref="0" max="32767" attributes="0" />
         </Group>
       </Group>
     </DimensionLayout>
     <DimensionLayout dim="1">
       <Group type="103" groupAlignment="0" attributes="0">
         <Group type="102" alignment="0" attributes="0">
-          <EmptySpace min="-2" pref="152" max="-2" attributes="0"/>
+          <EmptySpace min="-2" pref="152" max="-2" attributes="0" />
           <Group type="103" groupAlignment="0" attributes="0">
-            <Component id="logoTile" alignment="0" min="-2" pref="52" max="-2" attributes="0"/>
+            <Component id="logoTile" alignment="0" min="-2" pref="52" max="-2" attributes="0" />
             <Group type="102" alignment="0" attributes="0">
-              <EmptySpace min="-2" pref="3" max="-2" attributes="0"/>
-              <Component id="lblBrand" min="-2" max="-2" attributes="0"/>
-              <EmptySpace min="-2" pref="2" max="-2" attributes="0"/>
-              <Component id="lblBrandSub" min="-2" max="-2" attributes="0"/>
+              <EmptySpace min="-2" pref="3" max="-2" attributes="0" />
+              <Component id="lblBrand" min="-2" max="-2" attributes="0" />
+              <EmptySpace min="-2" pref="2" max="-2" attributes="0" />
+              <Component id="lblBrandSub" min="-2" max="-2" attributes="0" />
             </Group>
           </Group>
-          <EmptySpace min="-2" pref="80" max="-2" attributes="0"/>
-          <Component id="lblHeadline1" min="-2" pref="62" max="-2" attributes="0"/>
-          <EmptySpace min="-2" pref="3" max="-2" attributes="0"/>
-          <Component id="lblHeadline2" min="-2" pref="62" max="-2" attributes="0"/>
-          <EmptySpace min="-2" pref="10" max="-2" attributes="0"/>
-          <Component id="lblTagline" min="-2" pref="20" max="-2" attributes="0"/>
-          <EmptySpace min="-2" pref="4" max="-2" attributes="0"/>
-          <Component id="lblDescription" min="-2" pref="18" max="-2" attributes="0"/>
-          <EmptySpace min="-2" pref="72" max="-2" attributes="0"/>
-          <Component id="startButton" min="-2" pref="60" max="-2" attributes="0"/>
-          <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+          <EmptySpace min="-2" pref="80" max="-2" attributes="0" />
+          <Component id="lblHeadline1" min="-2" pref="62" max="-2" attributes="0" />
+          <EmptySpace min="-2" pref="3" max="-2" attributes="0" />
+          <Component id="lblHeadline2" min="-2" pref="62" max="-2" attributes="0" />
+          <EmptySpace min="-2" pref="10" max="-2" attributes="0" />
+          <Component id="lblTagline" min="-2" pref="20" max="-2" attributes="0" />
+          <EmptySpace min="-2" pref="4" max="-2" attributes="0" />
+          <Component id="lblDescription" min="-2" pref="18" max="-2" attributes="0" />
+          <EmptySpace min="-2" pref="72" max="-2" attributes="0" />
+          <Component id="startButton" min="-2" pref="60" max="-2" attributes="0" />
+          <EmptySpace min="0" pref="0" max="32767" attributes="0" />
         </Group>
       </Group>
     </DimensionLayout>
@@ -81,17 +83,18 @@
   <SubComponents>
     <Container class="javax.swing.JPanel" name="logoTile">
       <AuxValues>
-        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new LogoTile()"/>
+        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String"
+          value="new LogoTile()" />
       </AuxValues>
       <Layout>
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
-            <EmptySpace min="0" pref="52" max="32767" attributes="0"/>
+            <EmptySpace min="0" pref="52" max="32767" attributes="0" />
           </Group>
         </DimensionLayout>
         <DimensionLayout dim="1">
           <Group type="103" groupAlignment="0" attributes="0">
-            <EmptySpace min="0" pref="52" max="32767" attributes="0"/>
+            <EmptySpace min="0" pref="52" max="32767" attributes="0" />
           </Group>
         </DimensionLayout>
       </Layout>
@@ -99,84 +102,94 @@
     <Component class="javax.swing.JLabel" name="lblBrand">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Georgia" size="17" style="1"/>
+          <Font name="Georgia" size="17" style="1" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="ff" green="ff" red="ff" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="ff" green="ff" red="ff" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Hotel Reservation"/>
+        <Property name="text" type="java.lang.String" value="Hotel Reservation" />
       </Properties>
     </Component>
     <Component class="javax.swing.JLabel" name="lblBrandSub">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Segoe UI" size="13" style="0"/>
+          <Font name="Segoe UI" size="13" style="0" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="a8" green="df" red="e9" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="a8" green="df" red="e9" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Front desk"/>
+        <Property name="text" type="java.lang.String" value="Front desk" />
       </Properties>
     </Component>
     <Component class="javax.swing.JLabel" name="lblHeadline1">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Georgia" size="52" style="1"/>
+          <Font name="Georgia" size="52" style="1" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="ff" green="ff" red="ff" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="ff" green="ff" red="ff" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Welcome back"/>
+        <Property name="text" type="java.lang.String" value="Welcome back" />
       </Properties>
     </Component>
     <Component class="javax.swing.JLabel" name="lblHeadline2">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Georgia" size="52" style="1"/>
+          <Font name="Georgia" size="52" style="1" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="0" green="cc" red="ff" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="0" green="cc" red="ff" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="to Hotel."/>
+        <Property name="text" type="java.lang.String" value="to Hotel." />
       </Properties>
     </Component>
     <Component class="javax.swing.JLabel" name="lblTagline">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Segoe UI" size="16" style="0"/>
+          <Font name="Segoe UI" size="16" style="0" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="a8" green="df" red="e9" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="a8" green="df" red="e9" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Hotel Reservation Management Program"/>
+        <Property name="text" type="java.lang.String" value="Hotel Reservation Management Program" />
       </Properties>
     </Component>
     <Component class="javax.swing.JLabel" name="lblDescription">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Segoe UI" size="14" style="0"/>
+          <Font name="Segoe UI" size="14" style="0" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="8a" green="b0" red="b9" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="8a" green="b0" red="b9" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Reservations, check-ins and room status in one place."/>
+        <Property name="text" type="java.lang.String"
+          value="Reservations, check-ins and room status in one place." />
       </Properties>
     </Component>
     <Component class="javax.swing.JButton" name="startButton">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Segoe UI" size="16" style="1"/>
+          <Font name="Segoe UI" size="16" style="1" />
         </Property>
-        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
-          <Color blue="26" green="12" red="14" type="rgb"/>
+        <Property name="foreground" type="java.awt.Color"
+          editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="26" green="12" red="14" type="rgb" />
         </Property>
-        <Property name="text" type="java.lang.String" value="Start"/>
+        <Property name="text" type="java.lang.String" value="Start" />
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="startButtonActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener"
+          parameters="java.awt.event.ActionEvent" handler="startButtonActionPerformed" />
       </Events>
       <AuxValues>
-        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String" value="new StartButton()"/>
+        <AuxValue name="JavaCodeGenerator_CreateCodeCustom" type="java.lang.String"
+          value="new StartButton()" />
       </AuxValues>
     </Component>
   </SubComponents>
