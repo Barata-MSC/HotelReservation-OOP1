@@ -1,5 +1,6 @@
 package com.hotel.desktop.dashboard;
 
+import roomMonitoring.RoomInventory;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
@@ -39,7 +40,7 @@ import javax.swing.table.TableColumnModel;
  *
  * Add it to a host frame like the other screens:
  * {@code new DashboardScreenRef(this::showWelcome)}.
- * The sample numbers and reservations are static preview data.
+ * Room counts use the shared sample inventory; reservations remain static preview data.
  */
 public class DashboardScreen extends JPanel {
 
@@ -61,17 +62,32 @@ public class DashboardScreen extends JPanel {
     private static final Color AVAILABLE_GREEN = new Color(0, 230, 80);
 
     private final Runnable onLogout;
+    private final Runnable onRoomMonitoring;
+    private final RoomInventory roomInventory;
 
     public DashboardScreen() {
         this(() -> {
+        }, () -> {
         });
     }
 
     public DashboardScreen(Runnable onLogout) {
+        this(onLogout, () -> {
+        });
+    }
+
+    public DashboardScreen(Runnable onLogout, Runnable onRoomMonitoring) {
+        this(onLogout, onRoomMonitoring, new RoomInventory());
+    }
+
+    public DashboardScreen(Runnable onLogout, Runnable onRoomMonitoring, RoomInventory roomInventory) {
         this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+        this.onRoomMonitoring = Objects.requireNonNull(onRoomMonitoring, "onRoomMonitoring");
+        this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         styleReservationTable();
+        refreshRoomCounts();
     }
 
     /** @return the button used to leave the staff dashboard (also the host frame's Enter key action). */
@@ -87,6 +103,15 @@ public class DashboardScreen extends JPanel {
     /** Shows the signed-in staff member's role in the sidebar. */
     public void setStaffRole(String role) {
         lblRole.setText(role);
+    }
+
+    /** Refreshes the room summary from the shared sample inventory. */
+    public void refreshRoomCounts() {
+        lblAvailableCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.AVAILABLE)));
+        lblOccupiedCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.OCCUPIED)));
+        lblCleaningCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.DIRTY)));
+        lblMaintenanceCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.UNDER_MAINTENANCE)));
+        lblOutOfServiceCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.OUT_OF_SERVICE)));
     }
 
     /**
@@ -247,6 +272,7 @@ public class DashboardScreen extends JPanel {
         btnRoomMonitoring.setText("Room monitoring");
         btnRoomMonitoring.setMaximumSize(new java.awt.Dimension(2147483647, 48));
         btnRoomMonitoring.setPreferredSize(new java.awt.Dimension(228, 48));
+        btnRoomMonitoring.addActionListener(evt -> onRoomMonitoring.run());
         pnlNavigation.add(btnRoomMonitoring);
 
         btnHousekeeping.setText("Housekeeping");
@@ -410,7 +436,7 @@ public class DashboardScreen extends JPanel {
         pnlCleaningCard.add(badgeCleaning);
         lblCleaningTitle.setFont(new java.awt.Font("Segoe UI", 1, 15)); // NOI18N
         lblCleaningTitle.setForeground(new java.awt.Color(20, 18, 26));
-        lblCleaningTitle.setText("Cleaning");
+        lblCleaningTitle.setText("Dirty");
         lblCleaningTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(11, 0, 0, 0));
         pnlCleaningCard.add(lblCleaningTitle);
         lblCleaningCount.setFont(new java.awt.Font("Georgia", 1, 38)); // NOI18N
@@ -424,7 +450,7 @@ public class DashboardScreen extends JPanel {
         pnlMaintenanceCard.add(badgeMaintenance);
         lblMaintenanceTitle.setFont(new java.awt.Font("Segoe UI", 1, 15)); // NOI18N
         lblMaintenanceTitle.setForeground(new java.awt.Color(20, 18, 26));
-        lblMaintenanceTitle.setText("Maintenance");
+        lblMaintenanceTitle.setText("Under Maintenance");
         lblMaintenanceTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(11, 0, 0, 0));
         pnlMaintenanceCard.add(lblMaintenanceTitle);
         lblMaintenanceCount.setFont(new java.awt.Font("Georgia", 1, 38)); // NOI18N
@@ -767,7 +793,7 @@ public class DashboardScreen extends JPanel {
     }
 
     /** Sidebar icons, drawn as vectors so no image files are needed. */
-    private enum Glyph {
+    public enum Glyph {
         HOME, DOOR, GRID, SPARKLE, PERSON_PLUS, GLOBE, CHECK_IN, CHECK_OUT, POWER, PLUS
     }
 
@@ -884,7 +910,7 @@ public class DashboardScreen extends JPanel {
     }
 
     /** Sidebar divider under the brand block. */
-    private static final class BrandPanel extends JPanel {
+    public static final class BrandPanel extends JPanel {
 
         private static final long serialVersionUID = 1L;
 
@@ -899,11 +925,11 @@ public class DashboardScreen extends JPanel {
     }
 
     /** Yellow rounded tile with the "H" mark. */
-    private static final class LogoTile extends JPanel {
+    public static final class LogoTile extends JPanel {
 
         private static final long serialVersionUID = 1L;
 
-        LogoTile() {
+        public LogoTile() {
             setOpaque(false);
         }
 
@@ -929,11 +955,11 @@ public class DashboardScreen extends JPanel {
     }
 
     /** Yellow circle with a dark person glyph. */
-    private static final class AvatarBadge extends JPanel {
+    public static final class AvatarBadge extends JPanel {
 
         private static final long serialVersionUID = 1L;
 
-        AvatarBadge() {
+        public AvatarBadge() {
             setOpaque(false);
         }
 
@@ -956,17 +982,17 @@ public class DashboardScreen extends JPanel {
     }
 
     /** Sidebar button: icon + label, yellow when active, outlined for log out. */
-    private static final class NavButton extends JButton {
+    public static final class NavButton extends JButton {
 
         private static final long serialVersionUID = 1L;
-        static final int ITEM = 0;
-        static final int ACTIVE = 1;
-        static final int OUTLINE = 2;
+        public static final int ITEM = 0;
+        public static final int ACTIVE = 1;
+        public static final int OUTLINE = 2;
 
         private final Glyph glyph;
         private final int style;
 
-        NavButton(Glyph glyph, int style) {
+        public NavButton(Glyph glyph, int style) {
             this.glyph = glyph;
             this.style = style;
             setOpaque(false);
@@ -1058,15 +1084,15 @@ public class DashboardScreen extends JPanel {
      * Room status marker. The pattern carries the meaning, so it still reads
      * without color: solid, filled, striped or dashed.
      */
-    private static final class StatusBadge extends JPanel {
+    public static final class StatusBadge extends JPanel {
 
         private static final long serialVersionUID = 1L;
 
-        enum Kind { AVAILABLE, OCCUPIED, CLEANING, MAINTENANCE, OUT_OF_SERVICE }
+        public enum Kind { AVAILABLE, OCCUPIED, CLEANING, MAINTENANCE, OUT_OF_SERVICE }
 
         private final Kind kind;
 
-        StatusBadge(Kind kind) {
+        public StatusBadge(Kind kind) {
             this.kind = kind;
             setOpaque(false);
             setAlignmentX(LEFT_ALIGNMENT);
