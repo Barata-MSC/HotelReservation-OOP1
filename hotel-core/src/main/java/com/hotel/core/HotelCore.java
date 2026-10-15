@@ -4,6 +4,11 @@
 
 package com.hotel.core;
 
+import com.hotel.core.config.DatabaseConnection;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+
 /**
  *
  * @author Admin
@@ -11,6 +16,10 @@ package com.hotel.core;
 public class HotelCore {
 
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        try (Connection connection = DatabaseConnection.getConnection()) {
+            System.out.println("Connected");
+        } catch (SQLException e) {
+            System.err.println("Connection failed: " + e.getMessage());
+        }
     }
 }
