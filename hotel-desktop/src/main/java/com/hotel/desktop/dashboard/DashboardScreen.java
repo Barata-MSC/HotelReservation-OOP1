@@ -61,17 +61,24 @@ public class DashboardScreen extends JPanel {
     private static final Color AVAILABLE_GREEN = new Color(0, 230, 80);
 
     private final Runnable onLogout;
+    private final Runnable onManageRooms;
 
     public DashboardScreen() {
-        this(() -> {
-        });
+        this(() -> { }, () -> { });
     }
 
     public DashboardScreen(Runnable onLogout) {
+        this(onLogout, () -> { });
+    }
+
+    public DashboardScreen(Runnable onLogout, Runnable onManageRooms) {
         this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+        this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         styleReservationTable();
+        btnRoomManagement.addActionListener(event -> this.onManageRooms.run());
+        btnManageRooms.addActionListener(event -> this.onManageRooms.run());
     }
 
     /** @return the button used to leave the staff dashboard (also the host frame's Enter key action). */
