@@ -26,9 +26,7 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 - Treat staff screens as right-side content panels, not complete dashboard replacements. Do not duplicate or recreate the sidebar when adding or modifying a screen. Keep navigation, profile, and logout controls in the shared shell; change them only when an explicit navigation requirement calls for it.
 - Use a `CardLayout` for the right-side content panels and switch cards when navigation buttons are clicked. Do not create a new frame or rebuild/reload the shared shell for navigation; retain the shell and each screen's state.
 - This is the target workspace behavior. The current prototype still swaps whole screens in `HotelDesktop.java`, and some screens create their own sidebar; those screens must be brought into the shared-shell pattern as they are updated.
-- Keep the NetBeans `.form` files alongside their Java screens. Do not delete or remove them as part of UI changes; they are part of the desktop project's GUI Builder setup.
 - Preserve the single-window navigation pattern: staff navigation buttons should switch only the visible right-side content `JPanel` through the content area's `CardLayout`, not create another `JFrame` or reconstruct the shared shell.
-- When changing a screen managed by the GUI Builder, keep its `.form` and Java source synchronized so the form can continue to be opened and edited safely.
 
 ## Staff screen flow
 
