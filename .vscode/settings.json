@@ -1,3 +1,8 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "github.copilot.chat.pullRequestDescriptionGeneration.instructions": [
+    {
+      "text": "Generate a highly detailed pull request description based only on the actual changes in the current branch compared with the base branch. Do not invent information. Explain WHAT changed, WHY it changed, and HOW it was implemented. Identify the relevant files, components, functions, screens, or modules affected. Explain important implementation details and how the changes interact with the existing system. Describe user-facing behavior when applicable. Include testing performed or evidence available from the changes, but do not claim tests were performed if there is no evidence. Mention important limitations, known issues, or follow-up work when applicable. Use clear Markdown headings and bullet points. Begin with a concise summary, followed by detailed sections. Make the description thorough enough that another team member can understand the purpose, implementation, and impact of the changes without inspecting every file manually."
+    }
+  ]
 }
