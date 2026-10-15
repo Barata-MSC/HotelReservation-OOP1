@@ -8,7 +8,7 @@ A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-mod
 
 Both applications will connect to **one shared database** and call the same `hotel-core` business logic. Online reservations will be saved with reservation type `Online` and initial status `Pending`, then made visible to receptionists in the desktop application.
 
-> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist. The `hotel-web` module has not been created yet and is planned for the final phase. The checklists below describe planned work; no feature is marked complete here.
+> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist. The `hotel-web` module has not been created yet and is planned for the final phase. The desktop currently has Welcome, Login, and Dashboard UI prototypes. Login-to-dashboard navigation is preview-only: authentication, persistence, and dashboard actions are not connected. Dashboard counts and reservations are static sample data. The checklists below describe planned work; no feature is marked complete here.
 
 ## Contents
 
@@ -138,6 +138,8 @@ The Java Swing staff application is developed in `hotel-desktop`. These are the 
 
 The desktop application will call `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
 
+The current dashboard is a visual prototype, not an implemented room-monitoring or reservation workflow. Its navigation and quick-action controls are placeholders; connect them to the documented desktop screens and `hotel-core` services as those features are implemented. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for dashboard terminology and source-document alignment notes.
+
 ## Technology Stack
 
 | Area | Planned technology | Purpose |
@@ -200,9 +202,9 @@ hotel-reservation/
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/hotel/desktop/
-│       │   ├── HotelDesktop.java            # Entry point; opens WelcomeScreen
-│       │   └── ui/                          # WelcomeScreen, LoginFrame, DashboardFrame,
-│       │                                    # room/reservation/billing/monitoring panels
+│       │   ├── HotelDesktop.java            # Single JFrame hosting the desktop screens
+│       │   ├── auth/                        # WelcomeScreen and LoginScreen
+│       │   └── dashboard/                   # DashboardScreen
 │       └── test/java/                       # Desktop tests, as added
 │
 └── hotel-web/                               # Future customer website; not created yet
@@ -328,7 +330,7 @@ This builds and installs the modules in the reactor according to the parent Mave
 
 ### 5. Run the desktop application
 
-In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's welcome screen. The exact IDE run configuration may depend on the project's current Maven setup.
+In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's Welcome screen. The Login button currently opens the Dashboard as a UI preview only; it does not authenticate staff. The exact IDE run configuration may depend on the project's current Maven setup.
 
 The `hotel-web` module has **not been created yet**. The customer website setup and web run instructions will be added when that final phase begins.
 
@@ -409,4 +411,4 @@ Because both applications can access the same database, use appropriate database
 
 ## Project Documentation
 
-The implementation should stay consistent with the team's project guide and flowcharts. The staff desktop application is the first implementation phase, focused on walk-in reservations and hotel operations. The customer-facing website is the final phase and will use the same `hotel-core` services and database for online reservations. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.
+The implementation should stay consistent with the team's project guide and flowcharts, archived with the dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/). See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for the reviewed requirements and decisions. The staff desktop application is the first implementation phase, focused on walk-in reservations and hotel operations. The customer-facing website is the final phase and will use the same `hotel-core` services and database for online reservations. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.
