@@ -42,6 +42,17 @@ public final class RoomInventory {
         throw new IllegalArgumentException("Unknown room number: " + roomNumber);
     }
 
+    public void setStatus(int roomNumber, Status status) {
+        Objects.requireNonNull(status, "status");
+        for (Room room : rooms) {
+            if (room.number == roomNumber) {
+                room.status = status;
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Unknown room number: " + roomNumber);
+    }
+
     private void addFloor(int floor, String statuses) {
         for (int i = 0; i < statuses.length(); i++) {
             Status status = switch (statuses.charAt(i)) {

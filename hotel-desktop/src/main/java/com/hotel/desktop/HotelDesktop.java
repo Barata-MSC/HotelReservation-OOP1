@@ -3,6 +3,7 @@ package com.hotel.desktop;
 import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
+import com.hotel.desktop.houseKeepingStatus.HousekeepingScreen;
 import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import roomMonitoring.RoomMonitoringScreen;
 import roomMonitoring.RoomInventory;
@@ -19,6 +20,7 @@ public class HotelDesktop extends JFrame {
     private final LoginScreen loginScreen;
     private final WelcomeScreen welcomeScreen;
     private final DashboardScreen dashboardScreen;
+    private final HousekeepingScreen housekeepingScreen;
     private final RoomMonitoringScreen roomMonitoringScreen;
     private final RoomInventory roomInventory = new RoomInventory();
     private final RoomManagementScreen roomManagementScreen;
@@ -30,13 +32,18 @@ public class HotelDesktop extends JFrame {
         loginScreen = new LoginScreen(this::showDashboardPreview);
         roomManagementScreen = new RoomManagementScreen(this::showDashboard, this::showWelcome);
         dashboardScreen = new DashboardScreen(
-                this::showWelcome, this::showRoomManagement, this::showRoomMonitoring, roomInventory);
+                this::showWelcome, this::showRoomManagement, this::showRoomMonitoring, roomInventory,
+                this::showHousekeeping);
         roomMonitoringScreen = new RoomMonitoringScreen(this::showDashboardPreview, this::showWelcome, roomInventory);
+        housekeepingScreen = new HousekeepingScreen(
+                this::showDashboard, this::showRoomManagement, this::showRoomMonitoring,
+                this::showWelcome, roomInventory);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
         screenDeck.add(welcomeScreen, "welcome");
         screenDeck.add(loginScreen, "login");
         screenDeck.add(dashboardScreen, "dashboard");
+        screenDeck.add(housekeepingScreen, "housekeeping");
         screenDeck.add(roomMonitoringScreen, "room-monitoring");
         screenDeck.add(roomManagementScreen, "room-management");
         showWelcome();
@@ -51,11 +58,11 @@ public class HotelDesktop extends JFrame {
 
     private void showDashboardPreview() {
         // This is UI-only navigation until staff authentication is implemented.
-        dashboardScreen.refreshRoomCounts();
         showDashboard();
     }
 
     private void showDashboard() {
+        dashboardScreen.refreshRoomCounts();
         cardLayout.show(screenDeck, "dashboard");
         getRootPane().setDefaultButton(dashboardScreen.getLogoutButton());
     }
@@ -66,7 +73,13 @@ public class HotelDesktop extends JFrame {
     }
 
     private void showRoomMonitoring() {
+        roomMonitoringScreen.refreshData();
         cardLayout.show(screenDeck, "room-monitoring");
+        getRootPane().setDefaultButton(null);
+    }
+
+    private void showHousekeeping() {
+        cardLayout.show(screenDeck, "housekeeping");
         getRootPane().setDefaultButton(null);
     }
 
