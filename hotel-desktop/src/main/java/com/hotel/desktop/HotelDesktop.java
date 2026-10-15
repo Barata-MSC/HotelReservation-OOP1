@@ -3,6 +3,7 @@ package com.hotel.desktop;
 import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
+import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import javax.swing.JFrame;
@@ -16,18 +17,21 @@ public class HotelDesktop extends JFrame {
     private final LoginScreen loginScreen;
     private final WelcomeScreen welcomeScreen;
     private final DashboardScreen dashboardScreen;
+    private final RoomManagementScreen roomManagementScreen;
 
     public HotelDesktop() {
         initComponents();
 
         cardLayout = (CardLayout) screenDeck.getLayout();
         loginScreen = new LoginScreen(this::showDashboardPreview);
-        dashboardScreen = new DashboardScreen(this::showWelcome);
+        dashboardScreen = new DashboardScreen(this::showWelcome, this::showRoomManagement);
+        roomManagementScreen = new RoomManagementScreen(this::showDashboard, this::showWelcome);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
         screenDeck.add(welcomeScreen, "welcome");
         screenDeck.add(loginScreen, "login");
         screenDeck.add(dashboardScreen, "dashboard");
+        screenDeck.add(roomManagementScreen, "room-management");
         showWelcome();
 
         setLocationRelativeTo(null);
@@ -40,8 +44,17 @@ public class HotelDesktop extends JFrame {
 
     private void showDashboardPreview() {
         // This is UI-only navigation until staff authentication is implemented.
+        showDashboard();
+    }
+
+    private void showDashboard() {
         cardLayout.show(screenDeck, "dashboard");
         getRootPane().setDefaultButton(dashboardScreen.getLogoutButton());
+    }
+
+    private void showRoomManagement() {
+        cardLayout.show(screenDeck, "room-management");
+        getRootPane().setDefaultButton(roomManagementScreen.getLogoutButton());
     }
 
     private void showWelcome() {
