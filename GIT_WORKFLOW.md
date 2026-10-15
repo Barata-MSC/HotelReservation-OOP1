@@ -139,11 +139,13 @@ On GitHub:
 
 1. Open the repository and create a pull request.
 2. Set the feature branch as the **compare/source** branch and `main` as the **base/target** branch.
-3. Describe what changed, why it changed, and which tests or Maven commands you ran.
+3. Fill in the pull request description using the repository's [pull request template](.github/PULL_REQUEST_TEMPLATE.md). Explain the motivation, summarize the implementation, and report the exact validation performed (including any tests not run and why).
 4. Review the diff and resolve feedback with your team.
 5. Merge only after review and successful checks, as applicable.
 
 Do not normally commit directly to `main`. Keep pull requests focused and small enough for teammates to review.
+
+When an AI assistant completes work that changes project files, it should provide a ready-to-use pull request title and detailed description following the same template. This is a draft for the contributor; the assistant must not create, push, or open the pull request unless explicitly asked.
 
 ### G. After the pull request is merged
 

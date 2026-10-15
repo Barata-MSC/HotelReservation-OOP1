@@ -3,6 +3,7 @@ package com.hotel.desktop;
 import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
+import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import roomMonitoring.RoomMonitoringScreen;
 import roomMonitoring.RoomInventory;
 import java.awt.CardLayout;
@@ -20,12 +21,14 @@ public class HotelDesktop extends JFrame {
     private final DashboardScreen dashboardScreen;
     private final RoomMonitoringScreen roomMonitoringScreen;
     private final RoomInventory roomInventory = new RoomInventory();
+    private final RoomManagementScreen roomManagementScreen;
 
     public HotelDesktop() {
         initComponents();
 
         cardLayout = (CardLayout) screenDeck.getLayout();
         loginScreen = new LoginScreen(this::showDashboardPreview);
+        roomManagementScreen = new RoomManagementScreen(this::showDashboard, this::showWelcome);
         dashboardScreen = new DashboardScreen(this::showWelcome, this::showRoomMonitoring, roomInventory);
         roomMonitoringScreen = new RoomMonitoringScreen(this::showDashboardPreview, this::showWelcome, roomInventory);
         welcomeScreen = new WelcomeScreen(this::showLogin);
@@ -34,6 +37,7 @@ public class HotelDesktop extends JFrame {
         screenDeck.add(loginScreen, "login");
         screenDeck.add(dashboardScreen, "dashboard");
         screenDeck.add(roomMonitoringScreen, "room-monitoring");
+        screenDeck.add(roomManagementScreen, "room-management");
         showWelcome();
 
         setLocationRelativeTo(null);
@@ -46,14 +50,18 @@ public class HotelDesktop extends JFrame {
 
     private void showDashboardPreview() {
         // This is UI-only navigation until staff authentication is implemented.
-        dashboardScreen.refreshRoomCounts();
+          dashboardScreen.refreshRoomCounts();
+        showDashboard();
+    }
+
+    private void showDashboard() {
         cardLayout.show(screenDeck, "dashboard");
         getRootPane().setDefaultButton(dashboardScreen.getLogoutButton());
     }
 
-    private void showRoomMonitoring() {
-        cardLayout.show(screenDeck, "room-monitoring");
-        getRootPane().setDefaultButton(null);
+    private void showRoomManagement() {
+        cardLayout.show(screenDeck, "room-monitoring", "room-management");
+        getRootPane().setDefaultButton(roomManagementScreen.getLogoutButton());
     }
 
     private void showWelcome() {
