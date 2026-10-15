@@ -22,9 +22,12 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 
 - `HotelDesktop.java` is the only `JFrame`; it owns the application window.
 - All other desktop screens are `JPanel` instances hosted inside that frame.
-- Keep screens in the existing `CardLayout` and switch between them when buttons are clicked. Do not create a new frame or rebuild/reload the screens for navigation; switching panels keeps the window and screen state in place.
+- After staff enters the dashboard workspace, keep the left-side navigation from `DashboardScreen.java` mounted as a constant shared sidebar. Place the dashboard, room management, room monitoring, housekeeping, and other staff UIs in the right-side content area; navigation switches only that content area.
+- Treat staff screens as right-side content panels, not complete dashboard replacements. Do not duplicate or recreate the sidebar when adding or modifying a screen. Keep navigation, profile, and logout controls in the shared shell; change them only when an explicit navigation requirement calls for it.
+- Use a `CardLayout` for the right-side content panels and switch cards when navigation buttons are clicked. Do not create a new frame or rebuild/reload the shared shell for navigation; retain the shell and each screen's state.
+- This is the target workspace behavior. The current prototype still swaps whole screens in `HotelDesktop.java`, and some screens create their own sidebar; those screens must be brought into the shared-shell pattern as they are updated.
 - Keep the NetBeans `.form` files alongside their Java screens. Do not delete or remove them as part of UI changes; they are part of the desktop project's GUI Builder setup.
-- Preserve the single-window navigation pattern: buttons should switch the visible `JPanel` through `HotelDesktop`'s `CardLayout`, not create another `JFrame` or reconstruct the window/screens.
+- Preserve the single-window navigation pattern: staff navigation buttons should switch only the visible right-side content `JPanel` through the content area's `CardLayout`, not create another `JFrame` or reconstruct the shared shell.
 - When changing a screen managed by the GUI Builder, keep its `.form` and Java source synchronized so the form can continue to be opened and edited safely.
 
 ## Staff screen flow
