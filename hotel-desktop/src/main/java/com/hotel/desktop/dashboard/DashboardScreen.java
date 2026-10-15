@@ -1,6 +1,5 @@
 package com.hotel.desktop.dashboard;
 
-import roomMonitoring.RoomInventory;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
@@ -34,6 +33,8 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
+
+import com.hotel.desktop.roomMonitoring.RoomInventory;
 
 /**
  * Staff dashboard (1280 x 800), shown after sign-in.

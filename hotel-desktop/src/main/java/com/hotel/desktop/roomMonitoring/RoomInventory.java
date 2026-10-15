@@ -1,4 +1,4 @@
-package roomMonitoring;
+package com.hotel.desktop.roomMonitoring;
 
 import java.util.ArrayList;
 import java.util.Collections;

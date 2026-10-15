@@ -1,4 +1,4 @@
-package roomMonitoring;
+package com.hotel.desktop.roomMonitoring;
 
 import com.hotel.desktop.dashboard.DashboardScreen;
 import java.awt.BasicStroke;

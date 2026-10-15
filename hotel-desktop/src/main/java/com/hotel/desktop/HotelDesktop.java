@@ -5,8 +5,9 @@ import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
 import com.hotel.desktop.houseKeepingStatus.HousekeepingScreen;
 import com.hotel.desktop.roomManagement.RoomManagementScreen;
-import roomMonitoring.RoomMonitoringScreen;
-import roomMonitoring.RoomInventory;
+import com.hotel.desktop.roomMonitoring.RoomInventory;
+import com.hotel.desktop.roomMonitoring.RoomMonitoringScreen;
+
 import java.awt.CardLayout;
 import java.awt.Dimension;
 import javax.swing.JFrame;

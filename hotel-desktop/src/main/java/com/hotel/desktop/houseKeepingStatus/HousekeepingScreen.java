@@ -1,6 +1,8 @@
 package com.hotel.desktop.houseKeepingStatus;
 
 import com.hotel.desktop.dashboard.DashboardScreen;
+import com.hotel.desktop.roomMonitoring.RoomInventory;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -23,7 +25,6 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
-import roomMonitoring.RoomInventory;
 
 /** UI-only housekeeping status editor backed by the shared sample room inventory. */
 public final class HousekeepingScreen extends JPanel {
