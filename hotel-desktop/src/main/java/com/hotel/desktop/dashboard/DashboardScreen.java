@@ -76,7 +76,7 @@ public class DashboardScreen extends JPanel {
         this(onLogout, () -> { });
     }
     public DashboardScreen(Runnable onLogout, Runnable onRoomMonitoring) {
-        this(onLogout, onRoomMonitoring, new RoomInventory());
+        this(onLogout, () -> { }, onRoomMonitoring, new RoomInventory());
     }
 
     public DashboardScreen(Runnable onLogout, Runnable onManageRooms, Runnable onRoomMonitoring, RoomInventory roomInventory) {

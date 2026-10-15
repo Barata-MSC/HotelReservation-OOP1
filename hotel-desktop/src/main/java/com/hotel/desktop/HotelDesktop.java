@@ -29,7 +29,8 @@ public class HotelDesktop extends JFrame {
         cardLayout = (CardLayout) screenDeck.getLayout();
         loginScreen = new LoginScreen(this::showDashboardPreview);
         roomManagementScreen = new RoomManagementScreen(this::showDashboard, this::showWelcome);
-        dashboardScreen = new DashboardScreen(this::showWelcome, this::showRoomMonitoring, roomInventory);
+        dashboardScreen = new DashboardScreen(
+                this::showWelcome, this::showRoomManagement, this::showRoomMonitoring, roomInventory);
         roomMonitoringScreen = new RoomMonitoringScreen(this::showDashboardPreview, this::showWelcome, roomInventory);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
@@ -50,7 +51,7 @@ public class HotelDesktop extends JFrame {
 
     private void showDashboardPreview() {
         // This is UI-only navigation until staff authentication is implemented.
-          dashboardScreen.refreshRoomCounts();
+        dashboardScreen.refreshRoomCounts();
         showDashboard();
     }
 
@@ -60,8 +61,13 @@ public class HotelDesktop extends JFrame {
     }
 
     private void showRoomManagement() {
-        cardLayout.show(screenDeck, "room-monitoring", "room-management");
+        cardLayout.show(screenDeck, "room-management");
         getRootPane().setDefaultButton(roomManagementScreen.getLogoutButton());
+    }
+
+    private void showRoomMonitoring() {
+        cardLayout.show(screenDeck, "room-monitoring");
+        getRootPane().setDefaultButton(null);
     }
 
     private void showWelcome() {
