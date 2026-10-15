@@ -1,6 +1,5 @@
 package com.hotel.desktop.houseKeepingStatus;
 
-import com.hotel.desktop.dashboard.DashboardScreen;
 import com.hotel.desktop.roomMonitoring.RoomInventory;
 
 import java.awt.BorderLayout;
@@ -33,7 +32,6 @@ public final class HousekeepingScreen extends JPanel {
     private static final Color INK = new Color(20, 18, 26);
     private static final Color SUN = new Color(255, 204, 0);
     private static final Color CANVAS = new Color(255, 222, 62);
-    private static final Color CREAM = new Color(233, 223, 168);
     private static final Color MUTED = new Color(105, 91, 33);
     private static final Color HEADER_TEXT = new Color(74, 65, 0);
     private static final Color ROW_LINE = new Color(236, 230, 196);
@@ -41,10 +39,6 @@ public final class HousekeepingScreen extends JPanel {
     private static final Color GREEN = new Color(0, 230, 80);
     private static final Color ERROR = new Color(179, 38, 30);
 
-    private final Runnable onDashboard;
-    private final Runnable onRoomManagement;
-    private final Runnable onRoomMonitoring;
-    private final Runnable onLogout;
     private final RoomInventory roomInventory;
     private final JTextField roomNumberField = new JTextField();
     private final JLabel noRoomLabel = new JLabel("Find a room to see its current status.");
@@ -63,115 +57,15 @@ public final class HousekeepingScreen extends JPanel {
     private int currentRoomNumber = -1;
     private RoomInventory.Status selectedStatus;
 
-    public HousekeepingScreen(Runnable onDashboard, Runnable onRoomManagement,
-            Runnable onRoomMonitoring, Runnable onLogout, RoomInventory roomInventory) {
-        this.onDashboard = Objects.requireNonNull(onDashboard, "onDashboard");
-        this.onRoomManagement = Objects.requireNonNull(onRoomManagement, "onRoomManagement");
-        this.onRoomMonitoring = Objects.requireNonNull(onRoomMonitoring, "onRoomMonitoring");
-        this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+    public HousekeepingScreen(RoomInventory roomInventory) {
         this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
 
         setLayout(new BorderLayout());
         setBackground(CANVAS);
-        add(createSidebar(), BorderLayout.WEST);
+        setPreferredSize(new Dimension(1024, 800));
         add(createContent(), BorderLayout.CENTER);
         setStatusOptionsEnabled(false);
         updateButton.setEnabled(false);
-    }
-
-    private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(INK);
-        sidebar.setPreferredSize(new Dimension(256, 800));
-
-        DashboardScreen.BrandPanel brand = new DashboardScreen.BrandPanel();
-        brand.setBackground(INK);
-        brand.setPreferredSize(new Dimension(256, 93));
-        brand.setLayout(new BorderLayout(11, 0));
-        brand.setBorder(new EmptyBorder(23, 23, 24, 23));
-        DashboardScreen.LogoTile logo = new DashboardScreen.LogoTile();
-        logo.setPreferredSize(new Dimension(46, 46));
-        brand.add(logo, BorderLayout.WEST);
-        JPanel brandText = new JPanel();
-        brandText.setOpaque(false);
-        brandText.setLayout(new javax.swing.BoxLayout(brandText, javax.swing.BoxLayout.Y_AXIS));
-        JLabel brandName = sideLabel("Hotel Reservation", Color.WHITE, Font.BOLD, 17);
-        brandName.setFont(new Font("Georgia", Font.BOLD, 16));
-        brandText.add(brandName);
-        brandText.add(sideLabel("Front desk", CREAM, Font.PLAIN, 13));
-        brand.add(brandText, BorderLayout.CENTER);
-        sidebar.add(brand, BorderLayout.NORTH);
-
-        JPanel navigation = new JPanel();
-        navigation.setBackground(INK);
-        navigation.setBorder(new EmptyBorder(13, 14, 0, 14));
-        navigation.setLayout(new javax.swing.BoxLayout(navigation, javax.swing.BoxLayout.Y_AXIS));
-        addNavigationButton(navigation, DashboardScreen.Glyph.HOME, "Dashboard",
-                DashboardScreen.NavButton.ITEM, onDashboard);
-        addNavigationButton(navigation, DashboardScreen.Glyph.DOOR, "Room management",
-                DashboardScreen.NavButton.ITEM, onRoomManagement);
-        addNavigationButton(navigation, DashboardScreen.Glyph.GRID, "Room monitoring",
-                DashboardScreen.NavButton.ITEM, onRoomMonitoring);
-        addNavigationButton(navigation, DashboardScreen.Glyph.SPARKLE, "Housekeeping",
-                DashboardScreen.NavButton.ACTIVE, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.PERSON_PLUS, "Walk-in reservation",
-                DashboardScreen.NavButton.ITEM, null);
-        DashboardScreen.NavButton online = addNavigationButton(navigation, DashboardScreen.Glyph.GLOBE,
-                "Online reservations", DashboardScreen.NavButton.ITEM, null);
-        online.putClientProperty("badge", "3");
-        addNavigationButton(navigation, DashboardScreen.Glyph.CHECK_IN, "Check in",
-                DashboardScreen.NavButton.ITEM, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.CHECK_OUT, "Check out",
-                DashboardScreen.NavButton.ITEM, null);
-        sidebar.add(navigation, BorderLayout.CENTER);
-
-        JPanel profile = new JPanel(new BorderLayout());
-        profile.setBackground(INK);
-        JPanel band = new JPanel();
-        band.setBackground(SUN);
-        band.setPreferredSize(new Dimension(256, 15));
-        profile.add(band, BorderLayout.NORTH);
-
-        JPanel user = new JPanel(new BorderLayout(10, 0));
-        user.setBackground(INK);
-        user.setBorder(new EmptyBorder(3, 28, 0, 0));
-        user.setPreferredSize(new Dimension(256, 87));
-        DashboardScreen.AvatarBadge avatar = new DashboardScreen.AvatarBadge();
-        avatar.setPreferredSize(new Dimension(36, 36));
-        user.add(avatar, BorderLayout.WEST);
-        JPanel identity = new JPanel();
-        identity.setOpaque(false);
-        identity.setLayout(new javax.swing.BoxLayout(identity, javax.swing.BoxLayout.Y_AXIS));
-        identity.add(sideLabel("Welcome, Staff", Color.WHITE, Font.BOLD, 14));
-        identity.add(sideLabel("Receptionist", CREAM, Font.PLAIN, 12));
-        user.add(identity, BorderLayout.CENTER);
-        profile.add(user, BorderLayout.CENTER);
-
-        JPanel logoutWrap = new JPanel(new BorderLayout());
-        logoutWrap.setBackground(INK);
-        logoutWrap.setBorder(new EmptyBorder(0, 14, 34, 14));
-        DashboardScreen.NavButton logout =
-                new DashboardScreen.NavButton(DashboardScreen.Glyph.POWER, DashboardScreen.NavButton.OUTLINE);
-        logout.setText("Log out");
-        logout.setPreferredSize(new Dimension(228, 48));
-        logout.addActionListener(event -> onLogout.run());
-        logoutWrap.add(logout, BorderLayout.CENTER);
-        profile.add(logoutWrap, BorderLayout.SOUTH);
-        sidebar.add(profile, BorderLayout.SOUTH);
-        return sidebar;
-    }
-
-    private static DashboardScreen.NavButton addNavigationButton(JPanel navigation,
-            DashboardScreen.Glyph glyph, String text, int style, Runnable action) {
-        DashboardScreen.NavButton button = new DashboardScreen.NavButton(glyph, style);
-        button.setText(text);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        button.setPreferredSize(new Dimension(228, 48));
-        if (action != null) {
-            button.addActionListener(event -> action.run());
-        }
-        navigation.add(button);
-        return button;
     }
 
     private JPanel createContent() {
@@ -635,13 +529,6 @@ public final class HousekeepingScreen extends JPanel {
         fact.add(key);
         fact.add(value);
         return fact;
-    }
-
-    private static JLabel sideLabel(String text, Color color, int style, int size) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", style, size));
-        label.setForeground(color);
-        return label;
     }
 
     private static JButton primaryButton(String text) {

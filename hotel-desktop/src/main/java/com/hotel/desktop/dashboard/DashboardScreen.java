@@ -62,58 +62,21 @@ public class DashboardScreen extends JPanel {
     private static final Color ERROR_RED = new Color(179, 38, 30);
     private static final Color AVAILABLE_GREEN = new Color(0, 230, 80);
 
-    private final Runnable onLogout;
-    private final Runnable onRoomMonitoring;
-    private final Runnable onHousekeeping;
     private final RoomInventory roomInventory;
     private final Runnable onManageRooms;
 
     public DashboardScreen() {
-        this(() -> {
-        }, () -> {
-        });
+        this(() -> { }, new RoomInventory());
     }
 
-    public DashboardScreen(Runnable onLogout) {
-        this(onLogout, () -> { });
-    }
-    public DashboardScreen(Runnable onLogout, Runnable onRoomMonitoring) {
-        this(onLogout, () -> { }, onRoomMonitoring, new RoomInventory());
-    }
-
-    public DashboardScreen(Runnable onLogout, Runnable onManageRooms, Runnable onRoomMonitoring, RoomInventory roomInventory) {
-        this(onLogout, onManageRooms, onRoomMonitoring, roomInventory, () -> { });
-    }
-
-    public DashboardScreen(Runnable onLogout, Runnable onManageRooms, Runnable onRoomMonitoring,
-            RoomInventory roomInventory, Runnable onHousekeeping) {
-        this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+    public DashboardScreen(Runnable onManageRooms, RoomInventory roomInventory) {
         this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
-        this.onRoomMonitoring = Objects.requireNonNull(onRoomMonitoring, "onRoomMonitoring");
         this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
-        this.onHousekeeping = Objects.requireNonNull(onHousekeeping, "onHousekeeping");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         styleReservationTable();
-        btnRoomManagement.addActionListener(event -> this.onManageRooms.run());
-        btnHousekeeping.addActionListener(event -> this.onHousekeeping.run());
         btnManageRooms.addActionListener(event -> this.onManageRooms.run());
         refreshRoomCounts();
-    }
-
-    /** @return the button used to leave the staff dashboard (also the host frame's Enter key action). */
-    public JButton getLogoutButton() {
-        return btnLogout;
-    }
-
-    /** Shows the signed-in staff member's name in the sidebar. */
-    public void setStaffName(String name) {
-        lblWelcome.setText("Welcome, " + name);
-    }
-
-    /** Shows the signed-in staff member's role in the sidebar. */
-    public void setStaffRole(String role) {
-        lblRole.setText(role);
     }
 
     /** Refreshes the room summary from the shared sample inventory. */
@@ -134,28 +97,6 @@ public class DashboardScreen extends JPanel {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        pnlSidebar = new javax.swing.JPanel();
-        pnlBrand = new BrandPanel();
-        logoTile = new LogoTile();
-        lblBrand = new javax.swing.JLabel();
-        lblBrandSubtitle = new javax.swing.JLabel();
-        pnlNavigation = new javax.swing.JPanel();
-        btnDashboard = new NavButton(Glyph.HOME, NavButton.ACTIVE);
-        btnRoomManagement = new NavButton(Glyph.DOOR, NavButton.ITEM);
-        btnRoomMonitoring = new NavButton(Glyph.GRID, NavButton.ITEM);
-        btnHousekeeping = new NavButton(Glyph.SPARKLE, NavButton.ITEM);
-        btnWalkIn = new NavButton(Glyph.PERSON_PLUS, NavButton.ITEM);
-        btnOnlineReservations = new NavButton(Glyph.GLOBE, NavButton.ITEM);
-        btnCheckIn = new NavButton(Glyph.CHECK_IN, NavButton.ITEM);
-        btnCheckOut = new NavButton(Glyph.CHECK_OUT, NavButton.ITEM);
-        pnlProfile = new javax.swing.JPanel();
-        pnlProfileBand = new javax.swing.JPanel();
-        pnlUser = new javax.swing.JPanel();
-        avatar = new AvatarBadge();
-        lblWelcome = new javax.swing.JLabel();
-        lblRole = new javax.swing.JLabel();
-        pnlLogout = new javax.swing.JPanel();
-        btnLogout = new NavButton(Glyph.POWER, NavButton.OUTLINE);
         pnlContent = new javax.swing.JPanel();
         pnlTopStrip = new javax.swing.JPanel();
         pnlBody = new javax.swing.JPanel();
@@ -216,167 +157,8 @@ public class DashboardScreen extends JPanel {
         lblDeluxeCount = new javax.swing.JLabel();
 
         setBackground(new java.awt.Color(255, 222, 62));
-        setPreferredSize(new java.awt.Dimension(1280, 800));
+        setPreferredSize(new java.awt.Dimension(1024, 800));
         setLayout(new java.awt.BorderLayout());
-
-        // ---------------------------------------------------------------- sidebar
-        pnlSidebar.setBackground(new java.awt.Color(20, 18, 26));
-        pnlSidebar.setPreferredSize(new java.awt.Dimension(256, 800));
-        pnlSidebar.setLayout(new java.awt.BorderLayout());
-
-        pnlBrand.setBackground(new java.awt.Color(20, 18, 26));
-        pnlBrand.setPreferredSize(new java.awt.Dimension(256, 93));
-
-        logoTile.setPreferredSize(new java.awt.Dimension(46, 46));
-
-        lblBrand.setFont(new java.awt.Font("Georgia", 1, 17)); // NOI18N
-        lblBrand.setForeground(new java.awt.Color(255, 255, 255));
-        lblBrand.setText("Hotel Reservation");
-
-        lblBrandSubtitle.setFont(new java.awt.Font("Segoe UI", 0, 13)); // NOI18N
-        lblBrandSubtitle.setForeground(new java.awt.Color(233, 223, 168));
-        lblBrandSubtitle.setText("Front desk");
-
-        javax.swing.GroupLayout pnlBrandLayout = new javax.swing.GroupLayout(pnlBrand);
-        pnlBrand.setLayout(pnlBrandLayout);
-        pnlBrandLayout.setHorizontalGroup(
-            pnlBrandLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlBrandLayout.createSequentialGroup()
-                .addGap(23, 23, 23)
-                .addComponent(logoTile, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(11, 11, 11)
-                .addGroup(pnlBrandLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lblBrand)
-                    .addComponent(lblBrandSubtitle))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        pnlBrandLayout.setVerticalGroup(
-            pnlBrandLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlBrandLayout.createSequentialGroup()
-                .addGap(23, 23, 23)
-                .addGroup(pnlBrandLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(logoTile, javax.swing.GroupLayout.PREFERRED_SIZE, 46, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(pnlBrandLayout.createSequentialGroup()
-                        .addGap(4, 4, 4)
-                        .addComponent(lblBrand)
-                        .addGap(1, 1, 1)
-                        .addComponent(lblBrandSubtitle)))
-                .addContainerGap(24, Short.MAX_VALUE))
-        );
-
-        pnlSidebar.add(pnlBrand, java.awt.BorderLayout.NORTH);
-
-        pnlNavigation.setBackground(new java.awt.Color(20, 18, 26));
-        pnlNavigation.setBorder(javax.swing.BorderFactory.createEmptyBorder(13, 14, 0, 14));
-        pnlNavigation.setLayout(new javax.swing.BoxLayout(pnlNavigation, javax.swing.BoxLayout.Y_AXIS));
-
-        btnDashboard.setText("Dashboard");
-        btnDashboard.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnDashboard.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnDashboard);
-
-        btnRoomManagement.setText("Room management");
-        btnRoomManagement.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnRoomManagement.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnRoomManagement);
-
-        btnRoomMonitoring.setText("Room monitoring");
-        btnRoomMonitoring.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnRoomMonitoring.setPreferredSize(new java.awt.Dimension(228, 48));
-        btnRoomMonitoring.addActionListener(evt -> onRoomMonitoring.run());
-        pnlNavigation.add(btnRoomMonitoring);
-
-        btnHousekeeping.setText("Housekeeping");
-        btnHousekeeping.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnHousekeeping.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnHousekeeping);
-
-        btnWalkIn.setText("Walk-in reservation");
-        btnWalkIn.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnWalkIn.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnWalkIn);
-
-        btnOnlineReservations.setText("Online reservations");
-        btnOnlineReservations.putClientProperty("badge", "3");
-        btnOnlineReservations.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnOnlineReservations.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnOnlineReservations);
-
-        btnCheckIn.setText("Check in");
-        btnCheckIn.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnCheckIn.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnCheckIn);
-
-        btnCheckOut.setText("Check out");
-        btnCheckOut.setMaximumSize(new java.awt.Dimension(2147483647, 48));
-        btnCheckOut.setPreferredSize(new java.awt.Dimension(228, 48));
-        pnlNavigation.add(btnCheckOut);
-
-        pnlSidebar.add(pnlNavigation, java.awt.BorderLayout.CENTER);
-
-        pnlProfile.setBackground(new java.awt.Color(20, 18, 26));
-        pnlProfile.setLayout(new java.awt.BorderLayout());
-
-        pnlProfileBand.setBackground(new java.awt.Color(255, 204, 0));
-        pnlProfileBand.setPreferredSize(new java.awt.Dimension(256, 15));
-        pnlProfile.add(pnlProfileBand, java.awt.BorderLayout.NORTH);
-
-        pnlUser.setBackground(new java.awt.Color(20, 18, 26));
-        pnlUser.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0));
-        pnlUser.setPreferredSize(new java.awt.Dimension(256, 87));
-
-        avatar.setPreferredSize(new java.awt.Dimension(36, 36));
-
-        lblWelcome.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        lblWelcome.setForeground(new java.awt.Color(255, 255, 255));
-        lblWelcome.setText("Welcome, Staff");
-
-        lblRole.setFont(new java.awt.Font("Segoe UI", 0, 12)); // NOI18N
-        lblRole.setForeground(new java.awt.Color(233, 223, 168));
-        lblRole.setText("Receptionist");
-
-        javax.swing.GroupLayout pnlUserLayout = new javax.swing.GroupLayout(pnlUser);
-        pnlUser.setLayout(pnlUserLayout);
-        pnlUserLayout.setHorizontalGroup(
-            pnlUserLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlUserLayout.createSequentialGroup()
-                .addGap(28, 28, 28)
-                .addComponent(avatar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(10, 10, 10)
-                .addGroup(pnlUserLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lblWelcome)
-                    .addComponent(lblRole))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        pnlUserLayout.setVerticalGroup(
-            pnlUserLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(pnlUserLayout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
-                .addGroup(pnlUserLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                    .addComponent(avatar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(pnlUserLayout.createSequentialGroup()
-                        .addComponent(lblWelcome)
-                        .addGap(1, 1, 1)
-                        .addComponent(lblRole)))
-                .addGap(0, 0, Short.MAX_VALUE))
-        );
-
-        pnlProfile.add(pnlUser, java.awt.BorderLayout.CENTER);
-
-        pnlLogout.setBackground(new java.awt.Color(20, 18, 26));
-        pnlLogout.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 14, 34, 14));
-        pnlLogout.setLayout(new java.awt.BorderLayout());
-
-        btnLogout.setText("Log out");
-        btnLogout.setPreferredSize(new java.awt.Dimension(228, 48));
-        btnLogout.addActionListener(this::btnLogoutActionPerformed);
-        pnlLogout.add(btnLogout, java.awt.BorderLayout.CENTER);
-
-        pnlProfile.add(pnlLogout, java.awt.BorderLayout.SOUTH);
-
-        pnlSidebar.add(pnlProfile, java.awt.BorderLayout.SOUTH);
-
-        add(pnlSidebar, java.awt.BorderLayout.WEST);
 
         // ---------------------------------------------------------------- content
         pnlContent.setBackground(new java.awt.Color(255, 222, 62));
@@ -667,12 +449,7 @@ public class DashboardScreen extends JPanel {
         add(pnlContent, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnLogoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLogoutActionPerformed
-        onLogout.run();
-    }//GEN-LAST:event_btnLogoutActionPerformed
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JPanel avatar;
     private javax.swing.JProgressBar barDeluxe;
     private javax.swing.JProgressBar barDouble;
     private javax.swing.JProgressBar barSingle;
@@ -681,25 +458,14 @@ public class DashboardScreen extends JPanel {
     private javax.swing.JPanel badgeMaintenance;
     private javax.swing.JPanel badgeOccupied;
     private javax.swing.JPanel badgeOutOfService;
-    private javax.swing.JButton btnCheckIn;
     private javax.swing.JButton btnCheckInAction;
-    private javax.swing.JButton btnCheckOut;
     private javax.swing.JButton btnCheckOutAction;
-    private javax.swing.JButton btnDashboard;
-    private javax.swing.JButton btnHousekeeping;
-    private javax.swing.JButton btnLogout;
     private javax.swing.JButton btnManageRooms;
     private javax.swing.JButton btnNewWalkIn;
-    private javax.swing.JButton btnOnlineReservations;
-    private javax.swing.JButton btnRoomManagement;
-    private javax.swing.JButton btnRoomMonitoring;
-    private javax.swing.JButton btnWalkIn;
     private javax.swing.JLabel lblArrivals;
     private javax.swing.JLabel lblAvailability;
     private javax.swing.JLabel lblAvailableCount;
     private javax.swing.JLabel lblAvailableTitle;
-    private javax.swing.JLabel lblBrand;
-    private javax.swing.JLabel lblBrandSubtitle;
     private javax.swing.JLabel lblCleaningCount;
     private javax.swing.JLabel lblCleaningTitle;
     private javax.swing.JLabel lblDate;
@@ -715,41 +481,31 @@ public class DashboardScreen extends JPanel {
     private javax.swing.JLabel lblOutOfServiceTitle;
     private javax.swing.JLabel lblQuickActions;
     private javax.swing.JLabel lblReservationTitle;
-    private javax.swing.JLabel lblRole;
     private javax.swing.JLabel lblSingle;
     private javax.swing.JLabel lblSingleCount;
     private javax.swing.JLabel lblTitle;
-    private javax.swing.JLabel lblWelcome;
-    private javax.swing.JPanel logoTile;
     private javax.swing.JPanel pnlAvailability;
     private javax.swing.JPanel pnlAvailabilityRows;
     private javax.swing.JPanel pnlAvailableCard;
     private javax.swing.JPanel pnlBody;
-    private javax.swing.JPanel pnlBrand;
     private javax.swing.JPanel pnlCleaningCard;
     private javax.swing.JPanel pnlContent;
     private javax.swing.JPanel pnlDeluxeRow;
     private javax.swing.JPanel pnlDoubleRow;
     private javax.swing.JPanel pnlHeader;
-    private javax.swing.JPanel pnlLogout;
     private javax.swing.JPanel pnlLower;
     private javax.swing.JPanel pnlMain;
     private javax.swing.JPanel pnlMaintenanceCard;
-    private javax.swing.JPanel pnlNavigation;
     private javax.swing.JPanel pnlOccupiedCard;
     private javax.swing.JPanel pnlOutOfServiceCard;
-    private javax.swing.JPanel pnlProfile;
-    private javax.swing.JPanel pnlProfileBand;
     private javax.swing.JPanel pnlQuickActions;
     private javax.swing.JPanel pnlQuickButtons;
     private javax.swing.JPanel pnlReservations;
     private javax.swing.JPanel pnlReservationsHeader;
     private javax.swing.JPanel pnlRightColumn;
-    private javax.swing.JPanel pnlSidebar;
     private javax.swing.JPanel pnlSingleRow;
     private javax.swing.JPanel pnlSummary;
     private javax.swing.JPanel pnlTopStrip;
-    private javax.swing.JPanel pnlUser;
     private javax.swing.JScrollPane scrollReservations;
     private javax.swing.JTable tblReservations;
     // End of variables declaration//GEN-END:variables

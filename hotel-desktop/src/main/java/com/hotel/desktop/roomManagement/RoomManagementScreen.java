@@ -7,18 +7,9 @@ import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.RenderingHints;
-import java.awt.BasicStroke;
-import java.awt.geom.Ellipse2D;
-import java.awt.geom.Line2D;
-import java.awt.geom.Path2D;
-import java.util.Objects;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -42,13 +33,9 @@ public class RoomManagementScreen extends JPanel {
     private static final Color INK = new Color(20, 18, 26);
     private static final Color SUN = new Color(255, 204, 0);
     private static final Color CANVAS = new Color(255, 222, 62);
-    private static final Color CREAM = new Color(233, 223, 168);
     private static final Color MUTED = new Color(105, 91, 33);
     private static final Color LINE = new Color(236, 230, 196);
-    private static final Color NAV_HOVER = new Color(38, 35, 48);
 
-    private final Runnable onReturnToDashboard;
-    private final Runnable onLogout;
     private final JPanel workArea = new JPanel(new BorderLayout(0, 16));
     private final JTextField searchField = new JTextField();
     private final JComboBox<String> statusFilter = new JComboBox<>(
@@ -56,21 +43,12 @@ public class RoomManagementScreen extends JPanel {
     private final JTable roomTable = new JTable();
     private final TableRowSorter<DefaultTableModel> roomSorter;
     private final JLabel feedback = new JLabel("UI preview only - room changes are not saved.");
-    private final JButton dashboardButton = new NavButton(Glyph.HOME, "Dashboard", false);
-    private final JButton logoutButton = new NavButton(Glyph.POWER, "Log out", false);
 
-    public RoomManagementScreen(Runnable onReturnToDashboard) {
-        this(onReturnToDashboard, () -> { });
-    }
-
-    public RoomManagementScreen(Runnable onReturnToDashboard, Runnable onLogout) {
-        this.onReturnToDashboard = Objects.requireNonNull(onReturnToDashboard, "onReturnToDashboard");
-        this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+    public RoomManagementScreen() {
         setLayout(new BorderLayout());
         setBackground(CANVAS);
-        setPreferredSize(new Dimension(1280, 800));
+        setPreferredSize(new Dimension(1024, 800));
 
-        add(buildSidebar(), BorderLayout.WEST);
         add(buildContent(), BorderLayout.CENTER);
 
         DefaultTableModel model = new DefaultTableModel(new Object[][]{
@@ -93,102 +71,6 @@ public class RoomManagementScreen extends JPanel {
         styleTable();
         installFilters();
         showInventory();
-    }
-
-    public JButton getDashboardButton() {
-        return dashboardButton;
-    }
-
-    public JButton getLogoutButton() {
-        return logoutButton;
-    }
-
-    private JPanel buildSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(INK);
-        sidebar.setPreferredSize(new Dimension(256, 800));
-
-        JPanel brand = new JPanel(new BorderLayout(11, 0));
-        brand.setBackground(INK);
-        brand.setPreferredSize(new Dimension(256, 93));
-        brand.setBorder(BorderFactory.createEmptyBorder(23, 23, 24, 12));
-        JPanel logo = new LogoTile();
-        logo.setPreferredSize(new Dimension(46, 46));
-        JPanel brandText = new JPanel();
-        brandText.setOpaque(false);
-        brandText.setLayout(new BoxLayout(brandText, BoxLayout.Y_AXIS));
-        JLabel brandTitle = new JLabel("Hotel Reservation");
-        brandTitle.setFont(new Font("Georgia", Font.BOLD, 16));
-        brandTitle.setForeground(Color.WHITE);
-        JLabel brandSubtitle = new JLabel("Front desk");
-        brandSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        brandSubtitle.setForeground(CREAM);
-        brandText.add(Box.createVerticalGlue());
-        brandText.add(brandTitle);
-        brandText.add(brandSubtitle);
-        brandText.add(Box.createVerticalGlue());
-        brand.add(logo, BorderLayout.WEST);
-        brand.add(brandText, BorderLayout.CENTER);
-        sidebar.add(brand, BorderLayout.NORTH);
-
-        JPanel navigation = new JPanel();
-        navigation.setBackground(INK);
-        navigation.setBorder(BorderFactory.createEmptyBorder(13, 14, 0, 14));
-        navigation.setLayout(new BoxLayout(navigation, BoxLayout.Y_AXIS));
-        dashboardButton.addActionListener(event -> this.onReturnToDashboard.run());
-        navigation.add(dashboardButton);
-        navigation.add(Box.createVerticalStrut(4));
-        NavButton roomManagement = new NavButton(Glyph.DOOR, "Room management", true);
-        navigation.add(roomManagement);
-        Glyph[] glyphs = {Glyph.GRID, Glyph.SPARKLE, Glyph.PERSON_PLUS, Glyph.GLOBE, Glyph.CHECK_IN, Glyph.CHECK_OUT};
-        String[] items = {"Room monitoring", "Housekeeping", "Walk-in reservation",
-            "Online reservations", "Check in", "Check out"};
-        for (int index = 0; index < items.length; index++) {
-            NavButton button = new NavButton(glyphs[index], items[index], false);
-            if ("Online reservations".equals(items[index])) {
-                button.putClientProperty("badge", "3");
-            }
-            navigation.add(button);
-            navigation.add(Box.createVerticalStrut(4));
-        }
-        sidebar.add(navigation, BorderLayout.CENTER);
-
-        JPanel profile = new JPanel(new BorderLayout());
-        profile.setBackground(INK);
-        JPanel band = new JPanel();
-        band.setBackground(SUN);
-        band.setPreferredSize(new Dimension(256, 15));
-        profile.add(band, BorderLayout.NORTH);
-        JPanel user = new JPanel(new BorderLayout(10, 0));
-        user.setBackground(INK);
-        user.setBorder(BorderFactory.createEmptyBorder(3, 27, 3, 8));
-        AvatarBadge avatar = new AvatarBadge();
-        avatar.setPreferredSize(new Dimension(36, 36));
-        user.add(avatar, BorderLayout.WEST);
-        JPanel userText = new JPanel();
-        userText.setOpaque(false);
-        userText.setLayout(new BoxLayout(userText, BoxLayout.Y_AXIS));
-        JLabel welcome = new JLabel("Welcome, Staff");
-        welcome.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        welcome.setForeground(Color.WHITE);
-        JLabel role = new JLabel("Receptionist");
-        role.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        role.setForeground(CREAM);
-        userText.add(Box.createVerticalGlue());
-        userText.add(welcome);
-        userText.add(role);
-        userText.add(Box.createVerticalGlue());
-        user.add(userText, BorderLayout.CENTER);
-        user.setPreferredSize(new Dimension(256, 87));
-        profile.add(user, BorderLayout.CENTER);
-        JPanel logout = new JPanel(new BorderLayout());
-        logout.setBackground(INK);
-        logout.setBorder(BorderFactory.createEmptyBorder(0, 14, 34, 14));
-        logoutButton.addActionListener(event -> this.onLogout.run());
-        logout.add(logoutButton, BorderLayout.CENTER);
-        profile.add(logout, BorderLayout.SOUTH);
-        sidebar.add(profile, BorderLayout.SOUTH);
-        return sidebar;
     }
 
     private JPanel buildContent() {
@@ -507,197 +389,4 @@ public class RoomManagementScreen extends JPanel {
         return button;
     }
 
-    private static final class NavButton extends JButton {
-
-        private static final long serialVersionUID = 1L;
-
-        private final Glyph glyph;
-        private final boolean active;
-
-        NavButton(Glyph glyph, String label, boolean active) {
-            super(label);
-            this.glyph = glyph;
-            this.active = active;
-            setOpaque(false);
-            setContentAreaFilled(false);
-            setBorderPainted(false);
-            setHorizontalAlignment(SwingConstants.LEFT);
-            setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-            setPreferredSize(new Dimension(228, 48));
-            setFocusPainted(false);
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int height = getHeight();
-            boolean selected = active;
-            if (selected) {
-                g.setColor(SUN);
-                g.fillRoundRect(0, 2, getWidth(), height - 4, 20, 20);
-            } else if (getModel().isRollover() || getModel().isPressed()) {
-                g.setColor(NAV_HOVER);
-                g.fillRoundRect(0, 2, getWidth(), height - 4, 20, 20);
-            }
-
-            Color foreground = selected ? INK : CREAM;
-            paintGlyph(g, glyph, 16, (height - 22) / 2f, 22, foreground);
-            g.setColor(foreground);
-            g.setFont(new Font("Segoe UI", selected ? Font.BOLD : Font.PLAIN, 15));
-            FontMetrics metrics = g.getFontMetrics();
-            g.drawString(getText(), 52, (height - metrics.getHeight()) / 2 + metrics.getAscent());
-
-            Object badge = getClientProperty("badge");
-            if (badge != null) {
-                int badgeWidth = 24;
-                int badgeHeight = 22;
-                int x = getWidth() - 10 - badgeWidth;
-                int y = (height - badgeHeight) / 2;
-                g.setColor(SUN);
-                g.fillRoundRect(x, y, badgeWidth, badgeHeight, badgeHeight, badgeHeight);
-                g.setColor(INK);
-                g.setFont(new Font("Segoe UI", Font.BOLD, 13));
-                metrics = g.getFontMetrics();
-                String text = String.valueOf(badge);
-                g.drawString(text, x + (badgeWidth - metrics.stringWidth(text)) / 2,
-                        y + (badgeHeight - metrics.getHeight()) / 2 + metrics.getAscent());
-            }
-            g.dispose();
-        }
-    }
-
-    private static void paintGlyph(Graphics2D g, Glyph glyph, float x, float y, float size, Color color) {
-        g.setColor(color);
-        g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        float right = x + size;
-        float bottom = y + size;
-        switch (glyph) {
-            case HOME -> {
-                Path2D roof = new Path2D.Float();
-                roof.moveTo(x + 2, y + size * 0.48f);
-                roof.lineTo(x + size / 2, y + 2);
-                roof.lineTo(right - 2, y + size * 0.48f);
-                g.draw(roof);
-                g.drawRect(Math.round(x + 5), Math.round(y + size * 0.43f), Math.round(size - 10), Math.round(size * 0.48f));
-                g.drawRect(Math.round(x + size * 0.43f), Math.round(y + size * 0.63f),
-                        Math.round(size * 0.16f), Math.round(size * 0.28f));
-            }
-            case DOOR -> {
-                g.drawRoundRect(Math.round(x + 5), Math.round(y + 2), Math.round(size - 8), Math.round(size - 4), 2, 2);
-                g.draw(new Line2D.Float(x + size * 0.48f, y + 3, x + size * 0.48f, bottom - 2));
-                g.fill(new Ellipse2D.Float(x + size * 0.63f, y + size * 0.52f, 2.5f, 2.5f));
-            }
-            case GRID -> {
-                float cell = size * 0.32f;
-                for (int row = 0; row < 2; row++) {
-                    for (int column = 0; column < 2; column++) {
-                        g.drawRoundRect(Math.round(x + 2 + column * size * 0.49f),
-                                Math.round(y + 2 + row * size * 0.49f), Math.round(cell), Math.round(cell), 2, 2);
-                    }
-                }
-            }
-            case SPARKLE -> {
-                Path2D star = new Path2D.Float();
-                star.moveTo(x + size * 0.5f, y + 1);
-                star.lineTo(x + size * 0.64f, y + size * 0.38f);
-                star.lineTo(right - 1, y + size * 0.5f);
-                star.lineTo(x + size * 0.64f, y + size * 0.62f);
-                star.lineTo(x + size * 0.5f, bottom - 1);
-                star.lineTo(x + size * 0.38f, y + size * 0.62f);
-                star.lineTo(x + 1, y + size * 0.5f);
-                star.lineTo(x + size * 0.38f, y + size * 0.38f);
-                star.closePath();
-                g.draw(star);
-                g.draw(new Line2D.Float(x + size * 0.83f, y + 1, x + size * 0.83f, y + size * 0.26f));
-                g.draw(new Line2D.Float(x + size * 0.7f, y + size * 0.13f, right - 1, y + size * 0.13f));
-            }
-            case PERSON_PLUS -> {
-                g.draw(new Ellipse2D.Float(x + 5, y + 2, size * 0.32f, size * 0.32f));
-                g.draw(new java.awt.geom.Arc2D.Float(x + 2, y + size * 0.43f, size * 0.55f,
-                        size * 0.47f, 0, 180, java.awt.geom.Arc2D.OPEN));
-                g.draw(new Line2D.Float(x + size * 0.76f, y + size * 0.3f, x + size * 0.76f, y + size * 0.7f));
-                g.draw(new Line2D.Float(x + size * 0.57f, y + size * 0.5f, right - 1, y + size * 0.5f));
-            }
-            case GLOBE -> {
-                g.draw(new Ellipse2D.Float(x + 2, y + 2, size - 4, size - 4));
-                g.draw(new java.awt.geom.Arc2D.Float(x + size * 0.26f, y + 2, size * 0.48f, size - 4, 0, 360,
-                        java.awt.geom.Arc2D.OPEN));
-                g.draw(new Line2D.Float(x + 3, y + size * 0.5f, right - 3, y + size * 0.5f));
-            }
-            case CHECK_IN, CHECK_OUT, POWER -> {
-                g.draw(new Line2D.Float(x + 2, y + size * 0.5f, x + size * 0.68f, y + size * 0.5f));
-                g.draw(new Line2D.Float(x + size * 0.48f, y + size * 0.29f, x + size * 0.69f, y + size * 0.5f));
-                g.draw(new Line2D.Float(x + size * 0.48f, y + size * 0.71f, x + size * 0.69f, y + size * 0.5f));
-                g.draw(new Line2D.Float(x + size * 0.72f, y + 2, x + size * 0.72f, y + size * 0.98f));
-                g.draw(new Line2D.Float(x + size * 0.72f, y + 2, right - 1, y + 2));
-                g.draw(new Line2D.Float(x + size * 0.72f, bottom - 2, right - 1, bottom - 2));
-                if (glyph == Glyph.POWER) {
-                    g.draw(new java.awt.geom.Arc2D.Float(x + 3, y + 3, size - 6, size - 6, 45, 270,
-                            java.awt.geom.Arc2D.OPEN));
-                    g.draw(new Line2D.Float(x + size * 0.5f, y + 1, x + size * 0.5f, y + size * 0.52f));
-                }
-            }
-        }
-    }
-
-    private enum Glyph {
-        HOME, DOOR, GRID, SPARKLE, PERSON_PLUS, GLOBE, CHECK_IN, CHECK_OUT, POWER
-    }
-
-    private static final class LogoTile extends JPanel {
-
-        private static final long serialVersionUID = 1L;
-
-        LogoTile() {
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int width = getWidth();
-            int height = getHeight();
-            g.setColor(SUN);
-            g.fillRoundRect(0, 0, width, height, 15, 15);
-            float dot = height * 0.135f;
-            g.setColor(INK);
-            g.fill(new Ellipse2D.Float((width - dot) / 2f, height * 0.23f - dot / 2f, dot, dot));
-            int fontSize = Math.round(height * 0.46f);
-            g.setFont(new Font("Georgia", Font.BOLD, fontSize));
-            FontMetrics metrics = g.getFontMetrics();
-            g.drawString("H", (width - metrics.stringWidth("H")) / 2,
-                    Math.round(height * 0.63f + fontSize * 0.35f));
-            g.dispose();
-        }
-    }
-
-    private static final class AvatarBadge extends JPanel {
-
-        private static final long serialVersionUID = 1L;
-
-        AvatarBadge() {
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics graphics) {
-            Graphics2D g = (Graphics2D) graphics.create();
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int width = getWidth();
-            int height = getHeight();
-            g.setColor(SUN);
-            g.fillOval(0, 0, width, height);
-            g.setColor(INK);
-            float head = width * 0.22f;
-            g.fill(new Ellipse2D.Float((width - head) / 2f, height * 0.24f, head, head));
-            float bodyWidth = width * 0.42f;
-            float bodyHeight = height * 0.30f;
-            g.fill(new java.awt.geom.Arc2D.Float((width - bodyWidth) / 2f, height * 0.52f,
-                    bodyWidth, bodyHeight, 0, 180, java.awt.geom.Arc2D.CHORD));
-            g.dispose();
-        }
-    }
 }
