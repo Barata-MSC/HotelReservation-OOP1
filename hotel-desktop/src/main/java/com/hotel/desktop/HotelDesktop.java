@@ -4,12 +4,15 @@ import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
 import com.hotel.desktop.houseKeepingStatus.HousekeepingScreen;
+import com.hotel.desktop.nav.NavItem;
+import com.hotel.desktop.nav.WorkspaceShell;
 import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import com.hotel.desktop.roomMonitoring.RoomInventory;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringScreen;
 
 import java.awt.CardLayout;
 import java.awt.Dimension;
+import java.util.EnumSet;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
@@ -25,31 +28,43 @@ public class HotelDesktop extends JFrame {
     private final RoomMonitoringScreen roomMonitoringScreen;
     private final RoomInventory roomInventory = new RoomInventory();
     private final RoomManagementScreen roomManagementScreen;
+    private final WorkspaceShell workspaceShell;
 
     public HotelDesktop() {
         initComponents();
+        setMinimumSize(new Dimension(1360, 800));
+        pack();
+        setLocationRelativeTo(null);
 
         cardLayout = (CardLayout) screenDeck.getLayout();
         loginScreen = new LoginScreen(this::showDashboardPreview);
-        roomManagementScreen = new RoomManagementScreen(this::showDashboard, this::showWelcome);
+        roomManagementScreen = new RoomManagementScreen();
         dashboardScreen = new DashboardScreen(
-                this::showWelcome, this::showRoomManagement, this::showRoomMonitoring, roomInventory,
-                this::showHousekeeping);
-        roomMonitoringScreen = new RoomMonitoringScreen(this::showDashboardPreview, this::showWelcome, roomInventory);
-        housekeepingScreen = new HousekeepingScreen(
-                this::showDashboard, this::showRoomManagement, this::showRoomMonitoring,
-                this::showWelcome, roomInventory);
+                () -> showWorkspace(NavItem.ROOM_MANAGEMENT), roomInventory);
+        roomMonitoringScreen = new RoomMonitoringScreen(roomInventory);
+        housekeepingScreen = new HousekeepingScreen(roomInventory);
         welcomeScreen = new WelcomeScreen(this::showLogin);
+
+        workspaceShell = new WorkspaceShell();
+        workspaceShell.addScreen(NavItem.DASHBOARD, dashboardScreen);
+        workspaceShell.addScreen(NavItem.ROOM_MANAGEMENT, roomManagementScreen);
+        workspaceShell.addScreen(NavItem.ROOM_MONITORING, roomMonitoringScreen);
+        workspaceShell.addScreen(NavItem.HOUSEKEEPING, housekeepingScreen);
+        EnumSet<NavItem> availableScreens = EnumSet.of(
+                NavItem.DASHBOARD, NavItem.ROOM_MANAGEMENT,
+                NavItem.ROOM_MONITORING, NavItem.HOUSEKEEPING);
+        workspaceShell.getSidebar().setOnNavigate(item -> {
+            if (availableScreens.contains(item)) {
+                showWorkspace(item);
+            }
+        });
+        workspaceShell.getSidebar().setOnLogout(this::showWelcome);
 
         screenDeck.add(welcomeScreen, "welcome");
         screenDeck.add(loginScreen, "login");
-        screenDeck.add(dashboardScreen, "dashboard");
-        screenDeck.add(housekeepingScreen, "housekeeping");
-        screenDeck.add(roomMonitoringScreen, "room-monitoring");
-        screenDeck.add(roomManagementScreen, "room-management");
+        screenDeck.add(workspaceShell, "shell");
         showWelcome();
 
-        setLocationRelativeTo(null);
     }
 
     private void showLogin() {
@@ -59,29 +74,22 @@ public class HotelDesktop extends JFrame {
 
     private void showDashboardPreview() {
         // This is UI-only navigation until staff authentication is implemented.
-        showDashboard();
+        showWorkspace(NavItem.DASHBOARD);
     }
 
-    private void showDashboard() {
-        dashboardScreen.refreshRoomCounts();
-        cardLayout.show(screenDeck, "dashboard");
-        getRootPane().setDefaultButton(dashboardScreen.getLogoutButton());
-    }
-
-    private void showRoomManagement() {
-        cardLayout.show(screenDeck, "room-management");
-        getRootPane().setDefaultButton(roomManagementScreen.getLogoutButton());
-    }
-
-    private void showRoomMonitoring() {
-        roomMonitoringScreen.refreshData();
-        cardLayout.show(screenDeck, "room-monitoring");
-        getRootPane().setDefaultButton(null);
-    }
-
-    private void showHousekeeping() {
-        cardLayout.show(screenDeck, "housekeeping");
-        getRootPane().setDefaultButton(null);
+    private void showWorkspace(NavItem item) {
+        if (item == NavItem.DASHBOARD) {
+            dashboardScreen.refreshRoomCounts();
+        } else if (item == NavItem.ROOM_MONITORING) {
+            roomMonitoringScreen.refreshData();
+        }
+        cardLayout.show(screenDeck, "shell");
+        workspaceShell.show(item);
+        if (item == NavItem.DASHBOARD || item == NavItem.ROOM_MANAGEMENT) {
+            getRootPane().setDefaultButton(workspaceShell.getSidebar().getLogoutButton());
+        } else {
+            getRootPane().setDefaultButton(null);
+        }
     }
 
     private void showWelcome() {

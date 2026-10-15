@@ -41,171 +41,27 @@ public final class RoomMonitoringScreen extends JPanel {
     private static final Color INK = new Color(20, 18, 26);
     private static final Color SUN = new Color(255, 204, 0);
     private static final Color CANVAS = new Color(255, 222, 62);
-    private static final Color CREAM = new Color(233, 223, 168);
     private static final Color GREEN = new Color(34, 197, 94);
     private static final Color OOS_LINE = new Color(105, 105, 105);
 
-    private final Runnable onDashboard;
-    private final Runnable onLogout;
     private final RoomInventory roomInventory;
     private final Map<RoomInventory.Status, JLabel> countLabels = new EnumMap<>(RoomInventory.Status.class);
     private final JPanel roomRows = new JPanel();
     private RoomInventory.Status selectedFilter;
-    private JLabel lblWelcome;
-    private JLabel lblRole;
 
-    public RoomMonitoringScreen(Runnable onDashboard) {
-        this(onDashboard, () -> {
-        }, new RoomInventory());
-    }
-
-    public RoomMonitoringScreen(Runnable onDashboard, RoomInventory roomInventory) {
-        this(onDashboard, () -> {
-        }, roomInventory);
-    }
-
-    public RoomMonitoringScreen(Runnable onDashboard, Runnable onLogout, RoomInventory roomInventory) {
-        this.onDashboard = Objects.requireNonNull(onDashboard, "onDashboard");
-        this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
+    public RoomMonitoringScreen(RoomInventory roomInventory) {
         this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
         setLayout(new BorderLayout());
         setBackground(CANVAS);
-        add(createSidebar(), BorderLayout.WEST);
+        setPreferredSize(new Dimension(1024, 800));
         add(createContent(), BorderLayout.CENTER);
         refreshCounts();
         rebuildRoomGrid();
     }
 
-    public void setStaffName(String name) {
-        lblWelcome.setText("Welcome, " + name);
-    }
-
-    public void setStaffRole(String role) {
-        lblRole.setText(role);
-    }
-
     public void refreshData() {
         refreshCounts();
         rebuildRoomGrid();
-    }
-
-    private JPanel createSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(INK);
-        sidebar.setPreferredSize(new Dimension(256, 800));
-
-        DashboardScreen.BrandPanel brand = new DashboardScreen.BrandPanel();
-        brand.setBackground(INK);
-        brand.setPreferredSize(new Dimension(256, 93));
-        brand.setLayout(new BorderLayout(11, 0));
-        brand.setBorder(new EmptyBorder(23, 23, 24, 23));
-        DashboardScreen.LogoTile logo = new DashboardScreen.LogoTile();
-        logo.setPreferredSize(new Dimension(46, 46));
-        brand.add(logo, BorderLayout.WEST);
-        JPanel brandText = new JPanel();
-        brandText.setOpaque(false);
-        brandText.setLayout(new javax.swing.BoxLayout(brandText, javax.swing.BoxLayout.Y_AXIS));
-        JLabel name = sideLabel("Hotel Reservation", Color.WHITE, Font.BOLD, 17);
-        name.setFont(new Font("Georgia", Font.BOLD, 16));
-        JLabel subtitle = sideLabel("Front desk", CREAM, Font.PLAIN, 13);
-        brandText.add(name);
-        brandText.add(subtitle);
-        brand.add(brandText, BorderLayout.CENTER);
-        sidebar.add(brand, BorderLayout.NORTH);
-
-        JPanel navigation = new JPanel();
-        navigation.setBackground(INK);
-        navigation.setBorder(new EmptyBorder(13, 14, 0, 14));
-        navigation.setLayout(new javax.swing.BoxLayout(navigation, javax.swing.BoxLayout.Y_AXIS));
-        addNavigationButton(navigation, DashboardScreen.Glyph.HOME, "Dashboard", false, onDashboard);
-        addNavigationButton(navigation, DashboardScreen.Glyph.DOOR, "Room management", false, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.GRID, "Room monitoring", true, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.SPARKLE, "Housekeeping", false, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.PERSON_PLUS, "Walk-in reservation", false, null);
-        DashboardScreen.NavButton online = addNavigationButton(navigation, DashboardScreen.Glyph.GLOBE,
-                "Online reservations", false, null);
-        online.putClientProperty("badge", "3");
-        addNavigationButton(navigation, DashboardScreen.Glyph.CHECK_IN, "Check in", false, null);
-        addNavigationButton(navigation, DashboardScreen.Glyph.CHECK_OUT, "Check out", false, null);
-        sidebar.add(navigation, BorderLayout.CENTER);
-
-        JPanel profile = new JPanel(new BorderLayout());
-        profile.setBackground(INK);
-        JPanel band = new JPanel();
-        band.setBackground(SUN);
-        band.setPreferredSize(new Dimension(256, 15));
-        profile.add(band, BorderLayout.NORTH);
-
-        JPanel user = new JPanel();
-        user.setBackground(INK);
-        user.setBorder(new EmptyBorder(3, 0, 0, 0));
-        user.setPreferredSize(new Dimension(256, 87));
-
-        DashboardScreen.AvatarBadge avatar = new DashboardScreen.AvatarBadge();
-        avatar.setPreferredSize(new Dimension(36, 36));
-
-        lblWelcome = new JLabel("Welcome, Staff");
-        lblWelcome.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblWelcome.setForeground(Color.WHITE);
-
-        lblRole = new JLabel("Receptionist");
-        lblRole.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblRole.setForeground(CREAM);
-
-        javax.swing.GroupLayout userLayout = new javax.swing.GroupLayout(user);
-        user.setLayout(userLayout);
-        userLayout.setHorizontalGroup(
-                userLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(userLayout.createSequentialGroup()
-                                .addGap(28, 28, 28)
-                                .addComponent(avatar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(10, 10, 10)
-                                .addGroup(userLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(lblWelcome)
-                                        .addComponent(lblRole))
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        userLayout.setVerticalGroup(
-                userLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(userLayout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addGroup(userLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                                        .addComponent(avatar, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGroup(userLayout.createSequentialGroup()
-                                                .addComponent(lblWelcome)
-                                                .addGap(1, 1, 1)
-                                                .addComponent(lblRole)))
-                                .addGap(0, 0, Short.MAX_VALUE))
-        );
-
-        profile.add(user, BorderLayout.CENTER);
-
-        JPanel logoutPanel = new JPanel(new BorderLayout());
-        logoutPanel.setBackground(INK);
-        logoutPanel.setBorder(new EmptyBorder(0, 14, 34, 14));
-        DashboardScreen.NavButton logout = new DashboardScreen.NavButton(
-                DashboardScreen.Glyph.POWER, DashboardScreen.NavButton.OUTLINE);
-        logout.setText("Log out");
-        logout.setPreferredSize(new Dimension(228, 48));
-        logout.addActionListener(event -> onLogout.run());
-        logoutPanel.add(logout, BorderLayout.CENTER);
-        profile.add(logoutPanel, BorderLayout.SOUTH);
-        sidebar.add(profile, BorderLayout.SOUTH);
-        return sidebar;
-    }
-
-    private static DashboardScreen.NavButton addNavigationButton(JPanel navigation,
-            DashboardScreen.Glyph glyph, String text, boolean active, Runnable action) {
-        DashboardScreen.NavButton button = new DashboardScreen.NavButton(
-                glyph, active ? DashboardScreen.NavButton.ACTIVE : DashboardScreen.NavButton.ITEM);
-        button.setText(text);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-        button.setPreferredSize(new Dimension(228, 48));
-        if (action != null) {
-            button.addActionListener(event -> action.run());
-        }
-        navigation.add(button);
-        return button;
     }
 
     private JPanel createContent() {
@@ -403,13 +259,6 @@ public final class RoomMonitoringScreen extends JPanel {
         for (RoomInventory.Status status : RoomInventory.Status.values()) {
             countLabels.get(status).setText(Integer.toString(roomInventory.count(status)));
         }
-    }
-
-    private static JLabel sideLabel(String text, Color color, int style, int size) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", style, size));
-        label.setForeground(color);
-        return label;
     }
 
     private static Color statusColor(RoomInventory.Status status) {
