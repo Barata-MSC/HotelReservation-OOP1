@@ -84,6 +84,11 @@ public final class RoomMonitoringScreen extends JPanel {
         lblRole.setText(role);
     }
 
+    public void refreshData() {
+        refreshCounts();
+        rebuildRoomGrid();
+    }
+
     private JPanel createSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(INK);

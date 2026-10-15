@@ -63,6 +63,7 @@ public class DashboardScreen extends JPanel {
 
     private final Runnable onLogout;
     private final Runnable onRoomMonitoring;
+    private final Runnable onHousekeeping;
     private final RoomInventory roomInventory;
     private final Runnable onManageRooms;
 
@@ -80,14 +81,21 @@ public class DashboardScreen extends JPanel {
     }
 
     public DashboardScreen(Runnable onLogout, Runnable onManageRooms, Runnable onRoomMonitoring, RoomInventory roomInventory) {
+        this(onLogout, onManageRooms, onRoomMonitoring, roomInventory, () -> { });
+    }
+
+    public DashboardScreen(Runnable onLogout, Runnable onManageRooms, Runnable onRoomMonitoring,
+            RoomInventory roomInventory, Runnable onHousekeeping) {
         this.onLogout = Objects.requireNonNull(onLogout, "onLogout");
         this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
         this.onRoomMonitoring = Objects.requireNonNull(onRoomMonitoring, "onRoomMonitoring");
         this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
+        this.onHousekeeping = Objects.requireNonNull(onHousekeeping, "onHousekeeping");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         styleReservationTable();
         btnRoomManagement.addActionListener(event -> this.onManageRooms.run());
+        btnHousekeeping.addActionListener(event -> this.onHousekeeping.run());
         btnManageRooms.addActionListener(event -> this.onManageRooms.run());
         refreshRoomCounts();
     }
