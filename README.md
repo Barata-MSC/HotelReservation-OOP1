@@ -8,7 +8,7 @@ A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-mod
 
 Both applications will connect to **one shared database** and call the same `hotel-core` business logic. Online reservations will be saved with reservation type `Online` and initial status `Pending`, then made visible to receptionists in the desktop application.
 
-> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist. The `hotel-web` module has not been created yet and is planned for the final phase. The desktop currently has Welcome, Login, and Dashboard UI prototypes. Login-to-dashboard navigation is preview-only: authentication, persistence, and dashboard actions are not connected. Dashboard counts and reservations are static sample data. The checklists below describe planned work; no feature is marked complete here.
+> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist. The `hotel-web` module has not been created yet and is planned for the final phase. The desktop has Welcome and Login top-level cards, plus a shared workspace shell with Dashboard, Room management, Room monitoring, and Housekeeping UI previews. Login-to-workspace navigation is preview-only: authentication, persistence, and `hotel-core` business rules are not connected. Walk-in reservation, Online reservations, Check in, Check out, and dashboard quick actions other than “Manage rooms” remain placeholders. Dashboard counts and reservations are sample data. The checklists below describe planned work; no feature is marked complete here.
 
 ## Contents
 
@@ -123,7 +123,7 @@ This is a proposed layout for the future web module, not a claim that the module
 
 ## Desktop Screens
 
-The Java Swing staff application is developed in `hotel-desktop`. These are the planned desktop screens, not a claim that they are already implemented.
+The Java Swing staff application is developed in `hotel-desktop`. It currently has Welcome and Login top-level cards and a shared workspace shell with Dashboard, Room management, Room monitoring, and Housekeeping UI previews. These previews do not implement authentication, persistence, or `hotel-core` business rules; the other listed workflows remain planned.
 
 | Screen | Purpose |
 |---|---|
@@ -138,7 +138,7 @@ The Java Swing staff application is developed in `hotel-desktop`. These are the 
 
 The desktop application will call `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
 
-The current dashboard is a visual prototype, not an implemented room-monitoring or reservation workflow. Its navigation and quick-action controls are placeholders; connect them to the documented desktop screens and `hotel-core` services as those features are implemented. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for dashboard terminology and source-document alignment notes.
+The shared workspace shell switches among the four available UI preview cards. Walk-in reservation, Online reservations, Check in, Check out, and dashboard quick actions other than “Manage rooms” remain placeholders. Authentication, persistence, and production room or reservation workflows are not implemented. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for dashboard terminology and source-document alignment notes.
 
 ## Technology Stack
 
@@ -204,7 +204,8 @@ hotel-reservation/
 │       ├── main/java/com/hotel/desktop/
 │       │   ├── HotelDesktop.java            # Single JFrame hosting the desktop screens
 │       │   ├── auth/                        # WelcomeScreen and LoginScreen
-│       │   └── dashboard/                   # DashboardScreen
+│       │   ├── dashboard/                   # DashboardScreen and shared UI widgets
+│       │   └── nav/                         # NavItem, SidebarPanel, WorkspaceShell
 │       └── test/java/                       # Desktop tests, as added
 │
 └── hotel-web/                               # Future customer website; not created yet
