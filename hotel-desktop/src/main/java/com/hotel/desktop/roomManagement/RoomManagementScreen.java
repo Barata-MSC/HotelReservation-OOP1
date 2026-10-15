@@ -1,5 +1,12 @@
 package com.hotel.desktop.roomManagement;
 
+import com.hotel.core.exception.RoomNotFoundException;
+import com.hotel.core.exception.ValidationException;
+import com.hotel.core.model.Room;
+import com.hotel.core.model.enums.HousekeepingStatus;
+import com.hotel.core.model.enums.RoomType;
+import com.hotel.core.service.RoomService;
+
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -10,12 +17,18 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.text.NumberFormat;
+import java.util.List;
+import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -37,27 +50,24 @@ public class RoomManagementScreen extends JPanel {
     private static final Color LINE = new Color(236, 230, 196);
 
     private final JPanel workArea = new JPanel(new BorderLayout(0, 16));
+    private final RoomService roomService = new RoomService();
     private final JTextField searchField = new JTextField();
     private final JComboBox<String> statusFilter = new JComboBox<>(
             new String[]{"All statuses", "Available", "Occupied", "Dirty", "Under Maintenance", "Out of Service"});
     private final JTable roomTable = new JTable();
+    private final JLabel roomCount = new JLabel("0 rooms");
+    private final DefaultTableModel roomModel;
     private final TableRowSorter<DefaultTableModel> roomSorter;
-    private final JLabel feedback = new JLabel("UI preview only - room changes are not saved.");
+    private final JLabel feedback = new JLabel("Room data is loaded from the database.");
 
     public RoomManagementScreen() {
         setLayout(new BorderLayout());
         setBackground(CANVAS);
         setPreferredSize(new Dimension(1024, 800));
 
-        add(buildContent(), BorderLayout.CENTER);
-
-        DefaultTableModel model = new DefaultTableModel(new Object[][]{
-            {"101", "3", "Single", "1", "PHP 1,500", "Available", "Clean"},
-            {"102", "3", "Double", "2", "PHP 2,500", "Occupied", "Dirty"},
-            {"103", "4", "Deluxe", "4", "PHP 3,500", "Available", "Clean"},
-            {"201", "5", "Double", "2", "PHP 2,500", "Dirty", "Dirty"},
-            {"202", "5", "Deluxe", "4", "PHP 3,500", "Under Maintenance", "Clean"}
-        }, new String[]{"Room", "Floor", "Type", "Capacity", "Nightly rate", "Status", "Housekeeping"}) {
+        roomModel = new DefaultTableModel(
+                new Object[0][7],
+                new String[]{"Room", "Floor", "Type", "Capacity", "Nightly rate", "Status", "Housekeeping"}) {
             private static final long serialVersionUID = 1L;
 
             @Override
@@ -65,12 +75,14 @@ public class RoomManagementScreen extends JPanel {
                 return false;
             }
         };
-        roomTable.setModel(model);
-        roomSorter = new TableRowSorter<>(model);
+        roomTable.setModel(roomModel);
+        roomSorter = new TableRowSorter<>(roomModel);
         roomTable.setRowSorter(roomSorter);
+        add(buildContent(), BorderLayout.CENTER);
         styleTable();
         installFilters();
         showInventory();
+        loadRooms();
     }
 
     private JPanel buildContent() {
@@ -125,7 +137,7 @@ public class RoomManagementScreen extends JPanel {
             }
             showForm(true);
         });
-        addActionCard(actions, 2, "Search / display", "Find and review rooms in the inventory", this::showInventory);
+        addActionCard(actions, 2, "Search / display", "Find and review rooms in the inventory", this::loadRooms);
         return actions;
     }
 
@@ -195,7 +207,7 @@ public class RoomManagementScreen extends JPanel {
         heading.setFont(new Font("Georgia", Font.BOLD, 21));
         heading.setForeground(INK);
         tableHeading.add(heading, BorderLayout.WEST);
-        JLabel sampleTag = new JLabel("Sample data");
+        JLabel sampleTag = new JLabel("Database inventory");
         sampleTag.setFont(new Font("Segoe UI", Font.BOLD, 12));
         sampleTag.setForeground(MUTED);
         tableHeading.add(sampleTag, BorderLayout.EAST);
@@ -211,10 +223,9 @@ public class RoomManagementScreen extends JPanel {
         feedback.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         feedback.setForeground(MUTED);
         footer.add(feedback, BorderLayout.WEST);
-        JLabel count = new JLabel("5 rooms");
-        count.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        count.setForeground(INK);
-        footer.add(count, BorderLayout.EAST);
+        roomCount.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        roomCount.setForeground(INK);
+        footer.add(roomCount, BorderLayout.EAST);
         card.add(footer, BorderLayout.SOUTH);
         return card;
     }
@@ -231,7 +242,7 @@ public class RoomManagementScreen extends JPanel {
         title.setFont(new Font("Georgia", Font.BOLD, 21));
         title.setForeground(INK);
         headingCard.add(title, BorderLayout.WEST);
-        JLabel hint = new JLabel("UI preview only - changes are not saved");
+        JLabel hint = new JLabel("Changes are saved to the database");
         hint.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         hint.setForeground(MUTED);
         headingCard.add(hint, BorderLayout.EAST);
@@ -295,8 +306,7 @@ public class RoomManagementScreen extends JPanel {
         cancel.addActionListener(event -> showInventory());
         JButton save = primaryButton(update ? "Save changes" : "Add room");
         save.addActionListener(event -> {
-            feedback.setText("Preview only - room changes are not saved.");
-            showInventory();
+            saveRoom(update, roomNumber, floor, type, capacity, rate, status, housekeeping);
         });
         footer.add(cancel);
         footer.add(save);
@@ -331,11 +341,11 @@ public class RoomManagementScreen extends JPanel {
     }
 
     private void installFilters() {
-        searchField.addActionListener(event -> applyFilters());
+        searchField.addActionListener(event -> loadRooms());
     }
 
     private void applyFilters() {
-        String query = searchField.getText().trim().toLowerCase();
+        String query = searchField.getText().trim().toLowerCase(Locale.ROOT);
         String status = String.valueOf(statusFilter.getSelectedItem());
         roomSorter.setRowFilter(new RowFilter<>() {
             @Override
@@ -343,12 +353,172 @@ public class RoomManagementScreen extends JPanel {
                 boolean matchesQuery = query.isEmpty();
                 for (int column = 0; !matchesQuery && column < entry.getValueCount(); column++) {
                     Object value = entry.getValue(column);
-                    matchesQuery = value != null && value.toString().toLowerCase().contains(query);
+                    matchesQuery = value != null
+                            && value.toString().toLowerCase(Locale.ROOT).contains(query);
                 }
                 boolean matchesStatus = "All statuses".equals(status) || status.equals(entry.getStringValue(5));
                 return matchesQuery && matchesStatus;
             }
         });
+    }
+
+    private void loadRooms() {
+        String query = searchField.getText().trim();
+        try {
+            List<Room> rooms;
+            if (query.isEmpty()) {
+                rooms = roomService.findAll();
+            } else {
+                Integer roomNumber = parseRoomNumber(query);
+                RoomType roomType = parseRoomType(query);
+                if (roomNumber != null) {
+                    rooms = roomService.search(roomNumber, null);
+                    if (rooms.isEmpty()) {
+                        rooms = roomService.findAll();
+                    }
+                } else if (roomType != null) {
+                    rooms = roomService.search(null, roomType);
+                } else {
+                    rooms = roomService.findAll();
+                }
+            }
+
+            roomModel.setRowCount(0);
+            for (Room room : rooms) {
+                roomModel.addRow(new Object[]{
+                    room.getRoomNumber(),
+                    room.getFloor(),
+                    room.getRoomType().getDatabaseValue(),
+                    room.getCapacity(),
+                    formatPrice(room.getPricePerDay()),
+                    roomStatus(room),
+                    room.getHousekeepingStatus().getDatabaseValue()
+                });
+            }
+            roomCount.setText(rooms.size() + (rooms.size() == 1 ? " room" : " rooms"));
+            feedback.setText("Room data is loaded from the database.");
+            applyFilters();
+        } catch (SQLException e) {
+            feedback.setText("Unable to load room data.");
+            showDatabaseError(e);
+        }
+        showInventory();
+    }
+
+    private void saveRoom(
+            boolean update,
+            JTextField roomNumberField,
+            JTextField floorField,
+            JComboBox<String> typeField,
+            JTextField capacityField,
+            JTextField rateField,
+            JComboBox<String> statusField,
+            JComboBox<String> housekeepingField) {
+        try {
+            int roomNumber = Integer.parseInt(roomNumberField.getText().trim());
+            int floor = Integer.parseInt(floorField.getText().trim());
+            int capacity = Integer.parseInt(capacityField.getText().trim());
+            RoomType roomType = parseRoomType(String.valueOf(typeField.getSelectedItem()));
+            BigDecimal price = new BigDecimal(rateField.getText().trim().replace(",", ""));
+            String selectedStatus = String.valueOf(statusField.getSelectedItem());
+            HousekeepingStatus housekeepingStatus = parseHousekeepingStatus(
+                    selectedStatus, String.valueOf(housekeepingField.getSelectedItem()));
+            String description = update
+                    ? roomService.findByNumber(roomNumber).getDescription()
+                    : roomType.getDatabaseValue() + " room";
+            Room room = new Room(
+                    roomNumber,
+                    floor,
+                    roomType,
+                    capacity,
+                    description,
+                    price,
+                    "Occupied".equals(selectedStatus),
+                    housekeepingStatus);
+
+            if (update) {
+                roomService.updateRoom(room);
+                feedback.setText("Room updated.");
+            } else {
+                roomService.addRoom(room);
+                feedback.setText("Room added.");
+            }
+            loadRooms();
+        } catch (NumberFormatException e) {
+            showValidationError("Enter whole numbers for room number, floor, and capacity, and a valid price.");
+        } catch (ValidationException e) {
+            showValidationError(e.getMessage());
+        } catch (RoomNotFoundException e) {
+            showValidationError(e.getMessage());
+        } catch (SQLException e) {
+            feedback.setText("Unable to save room data.");
+            showDatabaseError(e);
+        }
+    }
+
+    private static Integer parseRoomNumber(String query) {
+        try {
+            return Integer.valueOf(query);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static RoomType parseRoomType(String value) {
+        for (RoomType roomType : RoomType.values()) {
+            if (roomType.getDatabaseValue().equalsIgnoreCase(value.trim())) {
+                return roomType;
+            }
+        }
+        return null;
+    }
+
+    private static HousekeepingStatus parseHousekeepingStatus(String roomStatus, String housekeeping) {
+        return switch (roomStatus) {
+            case "Dirty" -> HousekeepingStatus.DIRTY;
+            case "Under Maintenance" -> HousekeepingStatus.UNDER_MAINTENANCE;
+            case "Out of Service" -> HousekeepingStatus.OUT_OF_SERVICE;
+            default -> HousekeepingStatus.valueOf(housekeeping.toUpperCase(Locale.ROOT));
+        };
+    }
+
+    private static String roomStatus(Room room) {
+        if (room.getHousekeepingStatus() == HousekeepingStatus.UNDER_MAINTENANCE
+                || room.getHousekeepingStatus() == HousekeepingStatus.OUT_OF_SERVICE) {
+            return room.getHousekeepingStatus().getDatabaseValue();
+        }
+        if (room.getHousekeepingStatus() == HousekeepingStatus.DIRTY) {
+            return HousekeepingStatus.DIRTY.getDatabaseValue();
+        }
+        return room.isOccupied() ? "Occupied" : "Available";
+    }
+
+    private static String formatPrice(BigDecimal price) {
+        NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
+        formatter.setMinimumFractionDigits(0);
+        formatter.setMaximumFractionDigits(2);
+        return "PHP " + formatter.format(price);
+    }
+
+    private void showValidationError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Invalid room details", JOptionPane.WARNING_MESSAGE);
+    }
+
+    private void showDatabaseError(SQLException error) {
+        String sqlState = error.getSQLState();
+        String detail = error.getMessage();
+        boolean connectionFailure = (sqlState != null && sqlState.startsWith("08"))
+                || (detail != null && (detail.startsWith("Missing classpath configuration")
+                || detail.startsWith("Unable to load database configuration")
+                || detail.startsWith("Missing required database property")));
+        String message = connectionFailure
+                ? "Unable to connect to the hotel database."
+                : "The database could not complete the room operation.";
+        JOptionPane.showMessageDialog(
+                this,
+                message + "\n" + error.getMessage(),
+                connectionFailure ? "Database unavailable" : "Database error",
+                JOptionPane.ERROR_MESSAGE);
     }
 
     private void showInventory() {
