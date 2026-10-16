@@ -3,13 +3,17 @@ package com.hotel.core.service;
 import com.hotel.core.exception.ValidationException;
 import com.hotel.core.model.Room;
 import com.hotel.core.model.enums.HousekeepingStatus;
+import com.hotel.core.model.enums.RoomMonitoringStatus;
 import com.hotel.core.model.enums.RoomType;
 import com.hotel.core.repository.RoomRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RoomServiceTest {
@@ -91,6 +95,63 @@ class RoomServiceTest {
                         101, 1, 1, BigDecimal.TEN, HousekeepingStatus.UNDER_MAINTENANCE)));
     }
 
+    @Test
+    void monitoringStatusUsesDocumentedPrecedence() {
+        assertEquals(RoomMonitoringStatus.OUT_OF_SERVICE, RoomMonitoringStatus.fromRoom(
+                room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.OUT_OF_SERVICE)));
+        assertEquals(RoomMonitoringStatus.UNDER_MAINTENANCE, RoomMonitoringStatus.fromRoom(
+                room(102, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.UNDER_MAINTENANCE)));
+        assertEquals(RoomMonitoringStatus.DIRTY, RoomMonitoringStatus.fromRoom(
+                room(103, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.DIRTY)));
+        assertEquals(RoomMonitoringStatus.OCCUPIED, RoomMonitoringStatus.fromRoom(
+                room(104, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.CLEAN)));
+        assertEquals(RoomMonitoringStatus.AVAILABLE, RoomMonitoringStatus.fromRoom(
+                room(105, 1, 1, BigDecimal.TEN, false, HousekeepingStatus.CLEAN)));
+    }
+
+    @Test
+    void monitoringSnapshotCountsStatusesAndAvailableRoomsByType() throws Exception {
+        StubRoomRepository repository = new StubRoomRepository();
+        repository.rooms.add(room(101, 1, 1, BigDecimal.TEN, false, HousekeepingStatus.CLEAN));
+        repository.rooms.add(room(102, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.CLEAN));
+        repository.rooms.add(new Room(201, 2, RoomType.DOUBLE, 2, "Double room",
+                BigDecimal.valueOf(20), false, HousekeepingStatus.DIRTY));
+        repository.rooms.add(new Room(301, 3, RoomType.DELUXE, 2, "Deluxe room",
+                BigDecimal.valueOf(30), false, HousekeepingStatus.OUT_OF_SERVICE));
+
+        var snapshot = new RoomService(repository).getMonitoringSnapshot();
+
+        assertEquals(4, snapshot.getTotalRoomCount());
+        assertEquals(1, snapshot.getCount(RoomMonitoringStatus.AVAILABLE));
+        assertEquals(1, snapshot.getCount(RoomMonitoringStatus.OCCUPIED));
+        assertEquals(1, snapshot.getCount(RoomMonitoringStatus.DIRTY));
+        assertEquals(0, snapshot.getCount(RoomMonitoringStatus.UNDER_MAINTENANCE));
+        assertEquals(1, snapshot.getCount(RoomMonitoringStatus.OUT_OF_SERVICE));
+        assertEquals(1, snapshot.getAvailabilityByRoomType().get(RoomType.SINGLE).getAvailableCount());
+        assertEquals(2, snapshot.getAvailabilityByRoomType().get(RoomType.SINGLE).getTotalCount());
+        assertEquals(0, snapshot.getAvailabilityByRoomType().get(RoomType.DOUBLE).getAvailableCount());
+        assertEquals(1, snapshot.getAvailabilityByRoomType().get(RoomType.DOUBLE).getTotalCount());
+        assertEquals(0, snapshot.getAvailabilityByRoomType().get(RoomType.DELUXE).getAvailableCount());
+        assertEquals(1, snapshot.getAvailabilityByRoomType().get(RoomType.DELUXE).getTotalCount());
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.getRooms().clear());
+        assertThrows(UnsupportedOperationException.class,
+                () -> snapshot.getCounts().put(RoomMonitoringStatus.AVAILABLE, 99));
+    }
+
+    @Test
+    void monitoringSnapshotIncludesZeroCountsForEmptyInventory() throws Exception {
+        var snapshot = new RoomService(new StubRoomRepository()).getMonitoringSnapshot();
+
+        assertEquals(0, snapshot.getTotalRoomCount());
+        for (RoomMonitoringStatus status : RoomMonitoringStatus.values()) {
+            assertEquals(0, snapshot.getCount(status));
+        }
+        for (RoomType type : RoomType.values()) {
+            assertEquals(0, snapshot.getAvailabilityByRoomType().get(type).getAvailableCount());
+            assertEquals(0, snapshot.getAvailabilityByRoomType().get(type).getTotalCount());
+        }
+    }
+
     private static Room room(int roomNumber, int floor, int capacity, BigDecimal price) {
         return room(roomNumber, floor, capacity, price, HousekeepingStatus.CLEAN);
     }
@@ -101,10 +162,22 @@ class RoomServiceTest {
                 price, false, housekeepingStatus);
     }
 
+    private static Room room(
+            int roomNumber,
+            int floor,
+            int capacity,
+            BigDecimal price,
+            boolean occupied,
+            HousekeepingStatus housekeepingStatus) {
+        return new Room(roomNumber, floor, RoomType.SINGLE, capacity, "Single room",
+                price, occupied, housekeepingStatus);
+    }
+
     private static final class StubRoomRepository extends RoomRepository {
 
         private boolean roomExists;
         private boolean checkedInGuest;
+        private final List<Room> rooms = new ArrayList<>();
 
         @Override
         public boolean existsByNumber(int roomNumber) {
@@ -131,6 +204,11 @@ class RoomServiceTest {
 
         @Override
         public void setHousekeepingStatus(int roomNumber, HousekeepingStatus status) {
+        }
+
+        @Override
+        public List<Room> findAll() {
+            return new ArrayList<>(rooms);
         }
     }
 }

@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(150) NOT NULL,
   role VARCHAR(50) NOT NULL,
+  is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -121,7 +122,3 @@ INSERT INTO rooms (
   (304, 3, 'Double', 2, 'Double room on floor 3', 150.00, FALSE, 'Clean'),
   (305, 3, 'Double', 2, 'Double room on floor 3', 150.00, FALSE, 'Clean'),
   (306, 3, 'Deluxe', 2, 'Deluxe room on floor 3', 250.00, FALSE, 'Clean');
-
--- Replace this non-credential placeholder with a securely generated password hash.
-INSERT INTO users (username, password_hash, full_name, role)
-VALUES ('staff', 'REPLACE_WITH_SECURE_PASSWORD_HASH', 'Hotel Staff', 'Staff');

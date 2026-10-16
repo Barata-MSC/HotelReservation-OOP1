@@ -23,7 +23,7 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 - `HotelDesktop.java` is the only `JFrame`; it owns the application window.
 - All other desktop screens are `JPanel` instances hosted inside that frame.
 - The staff workspace is a shared shell in `com.hotel.desktop.nav`: `WorkspaceShell` holds `SidebarPanel` in `BorderLayout.WEST` and a `CardLayout` content area in `BorderLayout.CENTER`. The shared sidebar lives in `nav/SidebarPanel`, not `DashboardScreen.java`.
-- Dashboard, room management, room monitoring, and housekeeping are content-only `JPanel` previews registered as workspace cards. `HotelDesktop.java` remains the only `JFrame`; welcome and login remain top-level cards.
+- Dashboard, room management, room monitoring, housekeeping, the Check-in placeholder, and Check-out preview are content-only `JPanel` instances registered as workspace cards. `HotelDesktop.java` remains the only `JFrame`; welcome and login remain top-level cards.
 - Staff navigation switches the visible right-side card through `WorkspaceShell.show(NavItem)`. The shell and screen instances remain mounted, so their UI state is retained when navigating.
 - New staff screens must be content-only panels registered in the shell. Do not build a screen-specific sidebar, create another `JFrame`, or rebuild the shared shell for navigation.
 - Preserve the single-window navigation pattern: staff navigation buttons should switch only the visible right-side content `JPanel` through the content area's `CardLayout`, not create another `JFrame` or reconstruct the shared shell.
@@ -32,11 +32,11 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 
 The whole-system flowchart is: Welcome -> staff username/password -> authenticate against the Users table and compare the password hash -> load the staff profile and role -> Home Dashboard. From the dashboard, staff can open room management, room monitoring, housekeeping, walk-in reservations, online reservation review, check-in, and check-out. Logout returns to the start of the staff flow.
 
-In the current UI prototype, pressing **Log in** only opens the dashboard workspace so its design can be previewed. Authentication, permissions, persistence, and `hotel-core` business rules are not implemented. The “Manage rooms” dashboard quick action opens the room-management preview; other dashboard quick actions remain placeholders. Do not treat the login transition as a successful sign-in; replace it with the shared `hotel-core` authentication flow before production use.
+Staff sign-in is database-backed in `hotel-core`: the Login screen authenticates the receptionist against the `users` table using a salted PBKDF2-HMAC-SHA256 password hash, then loads the staff profile and role before opening the existing Dashboard. Invalid credentials produce a generic message; database errors are reported separately. The authenticated profile is held by the desktop window for the session and cleared on logout. The staff setup utility creates a receptionist account; no administrator role or permission system is defined. The “Manage rooms” dashboard quick action opens Room Management; other dashboard quick actions navigate to their registered preview/placeholder cards. Check in remains a plain placeholder; Check out is a multi-step UI preview with sample reservations and no persistence. Neither reservation-backed workflow is implemented.
 
 ## Dashboard data and terminology
 
-The dashboard is a read-only UI preview. Its room counts, room-type availability, reservation references, guest names, and reservation statuses are static sample data, not database results.
+The dashboard is read-only. Its room counts come from the shared database-backed room monitoring snapshot; reservation references, guest names, and reservation statuses remain static preview data.
 
 Use the documented domain vocabulary when wiring real data:
 
@@ -47,10 +47,10 @@ Use the documented domain vocabulary when wiring real data:
 - Room monitoring includes counts by room type and rooms needing cleaning, maintenance, or removal from service.
 - The mockup's “Cleaning” label is shown as **Dirty** in the prototype because Dirty is the specified housekeeping status.
 
-The illustrative room counts are internally consistent: 27 total rooms (8 Single, 12 Double, 7 Deluxe); 12 available rooms (5 Single, 4 Double, 3 Deluxe); 8 occupied, 4 Dirty, 2 under maintenance, and 1 out of service.
+The original mockup's illustrative room counts are internally consistent: 27 total rooms (8 Single, 12 Double, 7 Deluxe); 12 available rooms (5 Single, 4 Double, 3 Deluxe); 8 occupied, 4 Dirty, 2 under maintenance, and 1 out of service. They are design reference values, not the current database counts.
 
 ## UI-only implementation scope
 
-The dashboard intentionally does not query a database, calculate production availability, process reservations, validate credentials, or execute production room-state rules. Dashboard, room management, room monitoring, and housekeeping are UI previews; their display state is not persisted and is not backed by `hotel-core`. Walk-in reservation, online reservations, check-in, and check-out remain placeholders, as do dashboard quick actions other than “Manage rooms”.
+Dashboard counts and Room Monitoring use the immutable snapshot produced by `hotel-core` from room rows in the shared database. Room Management and Housekeeping use `RoomService` for persisted room changes. Authentication uses staff accounts from the shared database; reservation data and reservation-backed check-in/check-out workflows remain unimplemented. The Check-out preview uses illustrative in-memory reservations and does not persist checkout or payment changes.
 
-The room-monitoring screen and dashboard share the same in-memory sample room inventory, so their status counts stay consistent as rooms are cycled between statuses. Changes are not persisted and do not implement the production room-state rules.
+Room monitoring is read-only and derives status from `rooms.is_occupied` and `rooms.housekeeping_status`; the precedence is Out of Service, Under Maintenance, Dirty, Occupied, then Available. Reservations are not yet used to calculate occupancy. When reservation workflows are implemented, monitoring availability must incorporate reservation dates and the applicable reservation statuses as required by P4.

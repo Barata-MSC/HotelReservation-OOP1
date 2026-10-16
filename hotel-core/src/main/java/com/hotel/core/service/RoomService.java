@@ -2,6 +2,7 @@ package com.hotel.core.service;
 
 import com.hotel.core.exception.ValidationException;
 import com.hotel.core.model.Room;
+import com.hotel.core.model.RoomMonitoringSnapshot;
 import com.hotel.core.model.enums.HousekeepingStatus;
 import com.hotel.core.model.enums.RoomType;
 import com.hotel.core.repository.RoomRepository;
@@ -54,6 +55,10 @@ public class RoomService {
 
     public List<Room> findAll() throws SQLException {
         return roomRepository.findAll();
+    }
+
+    public RoomMonitoringSnapshot getMonitoringSnapshot() throws SQLException {
+        return RoomMonitoringSnapshot.fromRooms(roomRepository.findAll());
     }
 
     public void setHousekeepingStatus(int roomNumber, HousekeepingStatus status) throws SQLException {
