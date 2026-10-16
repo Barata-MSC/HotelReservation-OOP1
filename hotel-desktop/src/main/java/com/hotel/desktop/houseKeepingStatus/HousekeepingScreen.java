@@ -50,6 +50,7 @@ public final class HousekeepingScreen extends JPanel {
     private final JLabel bannerTitle = new JLabel(" ");
     private final JLabel bannerMessage = new JLabel(" ");
     private final JPanel banner = new JPanel(new BorderLayout(12, 0));
+    private final JPanel bannerHolder = new JPanel(new BorderLayout());
     private final JPanel optionsPanel = new JPanel(new GridLayout(2, 2, 12, 12));
     private final ButtonGroup statusGroup = new ButtonGroup();
     private final JButton updateButton = primaryButton("Update");
@@ -76,11 +77,17 @@ public final class HousekeepingScreen extends JPanel {
         topStrip.setPreferredSize(new Dimension(1, 15));
         content.add(topStrip, BorderLayout.NORTH);
 
-        JPanel body = new JPanel(new BorderLayout(0, 20));
+        JPanel body = new JPanel(new BorderLayout(0, 22));
         body.setBackground(CANVAS);
-        body.setBorder(new EmptyBorder(14, 40, 32, 40));
-        body.add(createHeader(), BorderLayout.NORTH);
-        body.add(createWorkflow(), BorderLayout.CENTER);
+        body.setBorder(new EmptyBorder(14, 38, 40, 38));
+        // The workflow is built first because it creates the banner that goes under the header.
+        JPanel workflow = createWorkflow();
+        JPanel north = new JPanel(new BorderLayout(0, 14));
+        north.setOpaque(false);
+        north.add(createHeader(), BorderLayout.NORTH);
+        north.add(bannerHolder, BorderLayout.CENTER);
+        body.add(north, BorderLayout.NORTH);
+        body.add(workflow, BorderLayout.CENTER);
         content.add(body, BorderLayout.CENTER);
         return content;
     }
@@ -139,6 +146,7 @@ public final class HousekeepingScreen extends JPanel {
         lookup.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         findCard.add(lookup);
         findCard.add(sampleRooms());
+        alignChildrenLeft(findCard);
         column.add(findCard);
         column.add(javax.swing.Box.createVerticalStrut(16));
 
@@ -164,6 +172,7 @@ public final class HousekeepingScreen extends JPanel {
         facts.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(2, 0, 0, 0, INK), new EmptyBorder(4, 0, 0, 0)));
         currentCard.add(facts);
+        alignChildrenLeft(currentCard);
         column.add(currentCard);
         return column;
     }
@@ -195,13 +204,13 @@ public final class HousekeepingScreen extends JPanel {
         bannerText.add(bannerTitle);
         bannerText.add(bannerMessage);
         banner.add(bannerText, BorderLayout.CENTER);
-        banner.setVisible(false);
-        column.add(banner);
-        column.add(javax.swing.Box.createVerticalStrut(12));
+        bannerHolder.setOpaque(false);
+        bannerHolder.add(banner, BorderLayout.CENTER);
+        bannerHolder.setVisible(false);
 
         JPanel statusCard = card();
         statusCard.setLayout(new javax.swing.BoxLayout(statusCard, javax.swing.BoxLayout.Y_AXIS));
-        statusCard.add(stepHeading("3", "Choose new housekeeping status"));
+        statusCard.add(stepHeading("3", "Choose new status"));
         statusCard.add(hint("Pick one status, then press Update."));
         optionsPanel.setOpaque(false);
         optionsPanel.setBorder(new EmptyBorder(2, 0, 0, 0));
@@ -228,6 +237,7 @@ public final class HousekeepingScreen extends JPanel {
         actions.add(cancelButton);
         actions.add(updateButton);
         statusCard.add(actions);
+        alignChildrenLeft(statusCard);
         column.add(statusCard);
         return column;
     }
@@ -264,7 +274,10 @@ public final class HousekeepingScreen extends JPanel {
         copy.add(detail);
         copy.add(javax.swing.Box.createVerticalStrut(4));
         copy.add(swatch);
-        option.add(radio, BorderLayout.WEST);
+        JPanel radioHolder = new JPanel(new BorderLayout());
+        radioHolder.setOpaque(false);
+        radioHolder.add(radio, BorderLayout.NORTH);
+        option.add(radioHolder, BorderLayout.WEST);
         option.add(copy, BorderLayout.CENTER);
 
         ActionListener select = event -> {
@@ -441,13 +454,13 @@ public final class HousekeepingScreen extends JPanel {
                 BorderFactory.createLineBorder(kind.equals("error") ? ERROR : INK, 2, true),
                 new EmptyBorder(10, 14, 10, 14)));
         banner.setBackground(tone);
-        banner.setVisible(true);
+        bannerHolder.setVisible(true);
         revalidate();
         repaint();
     }
 
     private void clearBanner() {
-        banner.setVisible(false);
+        bannerHolder.setVisible(false);
     }
 
     private void setStatusOptionsEnabled(boolean enabled) {
@@ -466,6 +479,15 @@ public final class HousekeepingScreen extends JPanel {
 
     private static String displayStatus(RoomInventory.Status status) {
         return status == RoomInventory.Status.AVAILABLE ? "Clean" : status.getLabel();
+    }
+
+    /** BoxLayout centres children whose alignment differs, so every child is aligned left. */
+    private static void alignChildrenLeft(JPanel parent) {
+        for (Component child : parent.getComponents()) {
+            if (child instanceof javax.swing.JComponent component) {
+                component.setAlignmentX(Component.LEFT_ALIGNMENT);
+            }
+        }
     }
 
     private static JPanel card() {

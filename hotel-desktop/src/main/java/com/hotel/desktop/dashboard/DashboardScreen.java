@@ -169,8 +169,8 @@ public class DashboardScreen extends JPanel {
         pnlContent.add(pnlTopStrip, java.awt.BorderLayout.NORTH);
 
         pnlBody.setOpaque(false);
-        pnlBody.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 40, 52, 40));
-        pnlBody.setLayout(new java.awt.BorderLayout(0, 25));
+        pnlBody.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 38, 40, 38));
+        pnlBody.setLayout(new java.awt.BorderLayout(0, 22));
 
         pnlHeader.setOpaque(false);
         pnlHeader.setPreferredSize(new java.awt.Dimension(10, 66));
@@ -327,14 +327,14 @@ public class DashboardScreen extends JPanel {
         pnlRightColumn.setPreferredSize(new java.awt.Dimension(336, 100));
         pnlRightColumn.setLayout(new java.awt.BorderLayout(0, 16));
 
-        pnlQuickActions.setBorder(javax.swing.BorderFactory.createEmptyBorder(16, 24, 9, 24));
+        pnlQuickActions.setBorder(javax.swing.BorderFactory.createEmptyBorder(20, 24, 9, 24));
         pnlQuickActions.setPreferredSize(new java.awt.Dimension(336, 298));
         pnlQuickActions.setLayout(new java.awt.BorderLayout());
 
         lblQuickActions.setFont(new java.awt.Font("Georgia", 1, 20)); // NOI18N
         lblQuickActions.setForeground(new java.awt.Color(20, 18, 26));
         lblQuickActions.setText("Quick actions");
-        lblQuickActions.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 26, 0));
+        lblQuickActions.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 22, 0));
         pnlQuickActions.add(lblQuickActions, java.awt.BorderLayout.NORTH);
 
         pnlQuickButtons.setOpaque(false);
@@ -517,7 +517,10 @@ public class DashboardScreen extends JPanel {
 
     private void styleReservationTable() {
         tblReservations.setOpaque(false);
-        tblReservations.setShowGrid(false);
+        // One grid draws every row line, so the lines stay level across all columns.
+        tblReservations.setShowHorizontalLines(true);
+        tblReservations.setShowVerticalLines(false);
+        tblReservations.setGridColor(ROW_LINE);
         tblReservations.setIntercellSpacing(new Dimension(0, 0));
         tblReservations.setRowHeight(66);
         tblReservations.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -839,10 +842,10 @@ public class DashboardScreen extends JPanel {
             int w = getWidth();
             int h = getHeight();
             g.setColor(Color.WHITE);
-            g.fillRoundRect(0, 0, w, h, 28, 28);
+            g.fillRoundRect(0, 0, w, h, 4, 4);
             g.setColor(INK);
             g.setStroke(new BasicStroke(2f));
-            g.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, 28, 28));
+            g.draw(new RoundRectangle2D.Float(1, 1, w - 2, h - 2, 4, 4));
             g.dispose();
         }
     }
@@ -1016,7 +1019,7 @@ public class DashboardScreen extends JPanel {
         }
     }
 
-    /** Plain table text with a thin line above every row. */
+    /** Plain table text; row lines come from the table grid. */
     private static final class TextCellRenderer extends DefaultTableCellRenderer {
 
         private static final long serialVersionUID = 1L;
@@ -1034,9 +1037,7 @@ public class DashboardScreen extends JPanel {
             setForeground(INK);
             setOpaque(isSelected);
             setBackground(SELECTED);
-            setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createMatteBorder(1, 0, 0, 0, ROW_LINE),
-                    BorderFactory.createEmptyBorder(0, 4, 0, 4)));
+            setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
             return this;
         }
     }
@@ -1070,9 +1071,6 @@ public class DashboardScreen extends JPanel {
                 g.setColor(SELECTED);
                 g.fillRect(0, 0, w, h);
             }
-            g.setColor(ROW_LINE);
-            g.fillRect(0, 0, w, 1);
-
             Color fill = Color.WHITE;
             Color line = INK;
             Color text = INK;
@@ -1120,7 +1118,9 @@ public class DashboardScreen extends JPanel {
             setOpaque(false);
             setFont(new Font("Segoe UI", Font.BOLD, 13));
             setForeground(HEADER_TEXT);
-            setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 4));
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, 1, 0, ROW_LINE),
+                    BorderFactory.createEmptyBorder(0, 4, 0, 4)));
         }
 
         @Override

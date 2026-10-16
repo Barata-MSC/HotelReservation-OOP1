@@ -74,8 +74,8 @@ public final class RoomMonitoringScreen extends JPanel {
 
         JPanel body = new JPanel();
         body.setOpaque(false);
-        body.setBorder(new EmptyBorder(14, 40, 52, 40));
-        body.setLayout(new BorderLayout(0, 25));
+        body.setBorder(new EmptyBorder(14, 38, 40, 38));
+        body.setLayout(new BorderLayout(0, 22));
 
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
@@ -107,7 +107,7 @@ public final class RoomMonitoringScreen extends JPanel {
     }
 
     private JPanel createCountCard(RoomInventory.Status status) {
-        RoundedPanel card = new RoundedPanel(28);
+        RoundedPanel card = new RoundedPanel(4);
         card.setLayout(new javax.swing.BoxLayout(card, javax.swing.BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(20, 20, 4, 12));
         DashboardScreen.StatusBadge marker = new DashboardScreen.StatusBadge(statusBadgeKind(status));
@@ -140,7 +140,7 @@ public final class RoomMonitoringScreen extends JPanel {
     }
 
     private JPanel createRoomBoard() {
-        RoundedPanel board = new RoundedPanel(22);
+        RoundedPanel board = new RoundedPanel(4);
         board.setLayout(new BorderLayout());
         board.setBorder(new EmptyBorder(12, 14, 10, 14));
         board.setPreferredSize(new Dimension(900, 420));
@@ -168,7 +168,7 @@ public final class RoomMonitoringScreen extends JPanel {
         JLabel tip = new JLabel("Tip: click a room to change its status (Available → Occupied → Dirty → Under Maintenance → Out of Service).");
         tip.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         tip.setForeground(new Color(70, 70, 70));
-        tip.setBorder(new EmptyBorder(7, 0, 0, 0));
+        tip.setBorder(new EmptyBorder(7, 7, 0, 0));
         board.add(tip, BorderLayout.SOUTH);
         return board;
     }
@@ -192,11 +192,12 @@ public final class RoomMonitoringScreen extends JPanel {
     }
 
     private JPanel createLegend() {
-        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        JPanel legend = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
         legend.setOpaque(false);
         for (RoomInventory.Status status : RoomInventory.Status.values()) {
             JPanel item = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
             item.setOpaque(false);
+            item.setBorder(new EmptyBorder(0, 0, 0, 10));
             item.add(new StatusMarker(status, 12, 12));
             JLabel label = new JLabel(status.getLabel());
             label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -226,13 +227,13 @@ public final class RoomMonitoringScreen extends JPanel {
             floorGroup.setOpaque(false);
             floorGroup.setLayout(new javax.swing.BoxLayout(floorGroup, javax.swing.BoxLayout.Y_AXIS));
             for (int start = 0; start < floorRooms.size(); start += 18) {
-                JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 5));
+                JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 7, 5));
                 row.setOpaque(false);
                 if (start == 0) {
                     FloorMarker floorMarker = new FloorMarker("F" + floor);
                     row.add(floorMarker);
                 } else {
-                    row.add(javax.swing.Box.createRigidArea(new Dimension(49, 43)));
+                    row.add(javax.swing.Box.createRigidArea(new Dimension(51, 43)));
                 }
                 int end = Math.min(start + 18, floorRooms.size());
                 for (int i = start; i < end; i++) {
@@ -401,9 +402,22 @@ public final class RoomMonitoringScreen extends JPanel {
             }
             FontMetrics metrics = g.getFontMetrics(getFont());
             g.setFont(getFont());
-            g.setColor(room.getStatus() == RoomInventory.Status.OCCUPIED
-                    || room.getStatus() == RoomInventory.Status.UNDER_MAINTENANCE ? SUN : INK);
             String text = getText();
+            RoomInventory.Status status = room.getStatus();
+            if (status == RoomInventory.Status.DIRTY || status == RoomInventory.Status.UNDER_MAINTENANCE) {
+                // The stripes would hide the number, so it sits on a small plate.
+                int chipW = metrics.stringWidth(text) + 12;
+                int chipH = 20;
+                RoundRectangle2D.Float chip = new RoundRectangle2D.Float(
+                        (w - chipW) / 2f, (h - chipH) / 2f, chipW, chipH, 8, 8);
+                g.setColor(status == RoomInventory.Status.DIRTY ? Color.WHITE : INK);
+                g.fill(chip);
+                g.setColor(INK);
+                g.setStroke(new BasicStroke(1.2f));
+                g.draw(chip);
+            }
+            g.setColor(status == RoomInventory.Status.OCCUPIED
+                    || status == RoomInventory.Status.UNDER_MAINTENANCE ? SUN : INK);
             g.drawString(text, (w - metrics.stringWidth(text)) / 2,
                     (h - metrics.getHeight()) / 2 + metrics.getAscent());
             g.dispose();
