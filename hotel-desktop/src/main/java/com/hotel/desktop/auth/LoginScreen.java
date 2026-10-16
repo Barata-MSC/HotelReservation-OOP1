@@ -4,10 +4,21 @@
  */
 package com.hotel.desktop.auth;
 
+import com.hotel.core.exception.InvalidCredentialsException;
+import com.hotel.core.model.StaffUser;
+import com.hotel.core.service.AuthenticationService;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import javax.swing.SwingWorker;
+
 /**
  * Staff sign-in screen.
  *
- * Add it to a host frame: {@code frame.setContentPane(new LoginScreen())}.
+ * Uses the shared core authentication service; the host supplies the authenticated-user callback.
  *
  * @author Admin
  */
@@ -16,22 +27,18 @@ public class LoginScreen extends javax.swing.JPanel {
     private static final long serialVersionUID = 1L;
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginScreen.class.getName());
-    private final Runnable onLogin;
+    private static final java.awt.Color AUTH_ERROR = new java.awt.Color(179, 38, 30);
+    private final AuthenticationService authenticationService;
+    private final Consumer<StaffUser> onAuthenticated;
 
     // Palette
     private static final java.awt.Color INK = new java.awt.Color(20, 19, 27);
     private static final java.awt.Color SUN = new java.awt.Color(255, 204, 0);
     private static final java.awt.Color HINT = new java.awt.Color(128, 128, 140);
 
-    /**
-     * Creates new form LoginScreen
-     */
-    public LoginScreen() {
-        this(null);
-    }
-
-    public LoginScreen(Runnable onLogin) {
-        this.onLogin = onLogin;
+    public LoginScreen(AuthenticationService authenticationService, Consumer<StaffUser> onAuthenticated) {
+        this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
+        this.onAuthenticated = Objects.requireNonNull(onAuthenticated, "onAuthenticated");
         initComponents();
     }
 
@@ -268,14 +275,74 @@ public class LoginScreen extends javax.swing.JPanel {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLoginActionPerformed
-        if (onLogin != null) {
-            onLogin.run();
-        } else {
-            logger.info("Staff authentication is not connected yet.");
+        String username = getUsername();
+        char[] password = getPassword();
+        txtPassword.setText("");
+        if (username.isEmpty() || password.length == 0) {
+            Arrays.fill(password, '\0');
+            showAuthenticationMessage("Enter your username and password.", HINT);
+            return;
         }
+
+        btnLogin.setEnabled(false);
+        showAuthenticationMessage("Signing in...", HINT);
+        new SwingWorker<StaffUser, Void>() {
+            @Override
+            protected StaffUser doInBackground() throws SQLException {
+                try {
+                    return authenticationService.authenticate(username, password);
+                } finally {
+                    Arrays.fill(password, '\0');
+                }
+            }
+
+            @Override
+            protected void done() {
+                Arrays.fill(password, '\0');
+                try {
+                    StaffUser staffUser = get();
+                    txtUsername.setText("");
+                    showAuthenticationMessage("Use your staff username and password.", HINT);
+                    onAuthenticated.accept(staffUser);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    btnLogin.setEnabled(true);
+                    showAuthenticationMessage("Sign in was interrupted. Please try again.", AUTH_ERROR);
+                } catch (ExecutionException exception) {
+                    btnLogin.setEnabled(true);
+                    showAuthenticationFailure(exception.getCause());
+                }
+            }
+        }.execute();
     }//GEN-LAST:event_btnLoginActionPerformed
 
-    
+    public void clearCredentialsAndReset() {
+        txtUsername.setText("");
+        txtPassword.setText("");
+        btnLogin.setEnabled(true);
+        showAuthenticationMessage("Use your staff username and password.", HINT);
+    }
+
+    private void showAuthenticationFailure(Throwable cause) {
+        if (cause instanceof InvalidCredentialsException) {
+            showAuthenticationMessage(InvalidCredentialsException.GENERIC_MESSAGE, AUTH_ERROR);
+        } else if (cause instanceof SQLException sqlException) {
+            logger.warning("Staff authentication database failure (SQLState="
+                    + sqlException.getSQLState() + ", code=" + sqlException.getErrorCode() + ").");
+            showAuthenticationMessage(
+                    "Database unavailable. Check the setup and try again.",
+                    AUTH_ERROR);
+        } else {
+            String errorType = cause == null ? "Unknown" : cause.getClass().getSimpleName();
+            logger.severe("Unexpected staff authentication error: " + errorType);
+            showAuthenticationMessage("Unable to sign in right now. Please try again.", AUTH_ERROR);
+        }
+    }
+
+    private void showAuthenticationMessage(String message, java.awt.Color color) {
+        lblSubtitle.setText(message);
+        lblSubtitle.setForeground(color);
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel avatar;

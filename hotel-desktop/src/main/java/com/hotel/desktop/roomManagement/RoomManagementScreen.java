@@ -22,6 +22,7 @@ import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -50,7 +51,8 @@ public class RoomManagementScreen extends JPanel {
     private static final Color LINE = new Color(236, 230, 196);
 
     private final JPanel workArea = new JPanel(new BorderLayout(0, 16));
-    private final RoomService roomService = new RoomService();
+    private final RoomService roomService;
+    private final Runnable onRoomChanged;
     private final JTextField searchField = new JTextField();
     private final JComboBox<String> statusFilter = new JComboBox<>(
             new String[]{"All statuses", "Available", "Occupied", "Dirty", "Under Maintenance", "Out of Service"});
@@ -61,6 +63,12 @@ public class RoomManagementScreen extends JPanel {
     private final JLabel feedback = new JLabel("Room data is loaded from the database.");
 
     public RoomManagementScreen() {
+        this(new RoomService(), () -> { });
+    }
+
+    public RoomManagementScreen(RoomService roomService, Runnable onRoomChanged) {
+        this.roomService = Objects.requireNonNull(roomService, "roomService");
+        this.onRoomChanged = Objects.requireNonNull(onRoomChanged, "onRoomChanged");
         setLayout(new BorderLayout());
         setBackground(CANVAS);
         setPreferredSize(new Dimension(1024, 800));
@@ -443,6 +451,7 @@ public class RoomManagementScreen extends JPanel {
                 roomService.addRoom(room);
                 feedback.setText("Room added.");
             }
+            onRoomChanged.run();
             loadRooms();
         } catch (NumberFormatException e) {
             showValidationError("Enter whole numbers for room number, floor, and capacity, and a valid price.");

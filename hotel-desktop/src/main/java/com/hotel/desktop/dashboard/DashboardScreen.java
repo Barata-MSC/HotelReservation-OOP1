@@ -1,5 +1,11 @@
 package com.hotel.desktop.dashboard;
 
+import com.hotel.core.model.RoomMonitoringSnapshot;
+import com.hotel.core.model.enums.RoomMonitoringStatus;
+import com.hotel.core.model.enums.RoomType;
+import com.hotel.core.service.RoomService;
+import com.hotel.desktop.roomMonitoring.RoomMonitoringDataSource;
+
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
@@ -34,14 +40,12 @@ import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableColumnModel;
 
-import com.hotel.desktop.roomMonitoring.RoomInventory;
-
 /**
  * Staff dashboard (1280 x 800), shown after sign-in.
  *
  * Add it to a host frame like the other screens:
  * {@code new DashboardScreenRef(this::showWelcome)}.
- * Room counts use the shared sample inventory; reservations remain static preview data.
+ * Room counts use the shared database snapshot; reservations remain static preview data.
  */
 public class DashboardScreen extends JPanel {
 
@@ -62,30 +66,112 @@ public class DashboardScreen extends JPanel {
     private static final Color ERROR_RED = new Color(179, 38, 30);
     private static final Color AVAILABLE_GREEN = new Color(0, 230, 80);
 
-    private final RoomInventory roomInventory;
+    private final RoomMonitoringDataSource dataSource;
     private final Runnable onManageRooms;
+    private final Runnable onCheckIn;
+    private final Runnable onCheckOut;
 
     public DashboardScreen() {
-        this(() -> { }, new RoomInventory());
+        this(() -> { }, () -> { }, () -> { }, new RoomMonitoringDataSource(new RoomService()));
     }
 
-    public DashboardScreen(Runnable onManageRooms, RoomInventory roomInventory) {
+    public DashboardScreen(Runnable onManageRooms, RoomMonitoringDataSource dataSource) {
+        this(onManageRooms, () -> { }, dataSource);
+    }
+
+    public DashboardScreen(
+            Runnable onManageRooms, Runnable onCheckIn, RoomMonitoringDataSource dataSource) {
+        this(onManageRooms, onCheckIn, () -> { }, dataSource);
+    }
+
+    public DashboardScreen(
+            Runnable onManageRooms, Runnable onCheckIn, Runnable onCheckOut,
+            RoomMonitoringDataSource dataSource) {
         this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
-        this.roomInventory = Objects.requireNonNull(roomInventory, "roomInventory");
+        this.onCheckIn = Objects.requireNonNull(onCheckIn, "onCheckIn");
+        this.onCheckOut = Objects.requireNonNull(onCheckOut, "onCheckOut");
+        this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
+        lblCleaningTitle.setText("Dirty");
         styleReservationTable();
         btnManageRooms.addActionListener(event -> this.onManageRooms.run());
-        refreshRoomCounts();
+        btnCheckInAction.addActionListener(event -> this.onCheckIn.run());
+        btnCheckOutAction.addActionListener(event -> this.onCheckOut.run());
+        dataSource.addListener(this::displayRoomCounts);
     }
 
-    /** Refreshes the room summary from the shared sample inventory. */
+    /** Requests a fresh database snapshot for the shared room summaries. */
     public void refreshRoomCounts() {
-        lblAvailableCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.AVAILABLE)));
-        lblOccupiedCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.OCCUPIED)));
-        lblCleaningCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.DIRTY)));
-        lblMaintenanceCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.UNDER_MAINTENANCE)));
-        lblOutOfServiceCount.setText(Integer.toString(roomInventory.count(RoomInventory.Status.OUT_OF_SERVICE)));
+        dataSource.refresh();
+    }
+
+    private void displayRoomCounts(RoomMonitoringDataSource.State state) {
+        RoomMonitoringSnapshot snapshot = state.getSnapshot();
+        if (snapshot == null) {
+            String value = state.isLoading() ? "…" : "—";
+            lblAvailableCount.setText(value);
+            lblOccupiedCount.setText(value);
+            lblCleaningCount.setText(value);
+            lblMaintenanceCount.setText(value);
+            lblOutOfServiceCount.setText(value);
+            String error = state.getError() == null ? null : state.getError().getMessage();
+            lblAvailableCount.setToolTipText(error);
+            lblOccupiedCount.setToolTipText(error);
+            lblCleaningCount.setToolTipText(error);
+            lblMaintenanceCount.setToolTipText(error);
+            lblOutOfServiceCount.setToolTipText(error);
+            setRoomTypeAvailability(null, error);
+            return;
+        }
+
+        lblAvailableCount.setText(Integer.toString(snapshot.getCount(RoomMonitoringStatus.AVAILABLE)));
+        lblOccupiedCount.setText(Integer.toString(snapshot.getCount(RoomMonitoringStatus.OCCUPIED)));
+        lblCleaningCount.setText(Integer.toString(snapshot.getCount(RoomMonitoringStatus.DIRTY)));
+        lblMaintenanceCount.setText(
+                Integer.toString(snapshot.getCount(RoomMonitoringStatus.UNDER_MAINTENANCE)));
+        lblOutOfServiceCount.setText(Integer.toString(snapshot.getCount(RoomMonitoringStatus.OUT_OF_SERVICE)));
+        setRoomTypeAvailability(snapshot, null);
+        lblAvailableCount.setToolTipText(null);
+        lblOccupiedCount.setToolTipText(null);
+        lblCleaningCount.setToolTipText(null);
+        lblMaintenanceCount.setToolTipText(null);
+        lblOutOfServiceCount.setToolTipText(null);
+    }
+
+    private void setRoomTypeAvailability(RoomMonitoringSnapshot snapshot, String error) {
+        if (snapshot == null) {
+            setRoomTypeAvailability(barSingle, lblSingleCount, null, error);
+            setRoomTypeAvailability(barDouble, lblDoubleCount, null, error);
+            setRoomTypeAvailability(barDeluxe, lblDeluxeCount, null, error);
+            return;
+        }
+        setRoomTypeAvailability(
+                barSingle, lblSingleCount, snapshot.getAvailabilityByRoomType().get(RoomType.SINGLE), null);
+        setRoomTypeAvailability(
+                barDouble, lblDoubleCount, snapshot.getAvailabilityByRoomType().get(RoomType.DOUBLE), null);
+        setRoomTypeAvailability(
+                barDeluxe, lblDeluxeCount, snapshot.getAvailabilityByRoomType().get(RoomType.DELUXE), null);
+    }
+
+    private static void setRoomTypeAvailability(
+            JProgressBar bar,
+            JLabel countLabel,
+            RoomMonitoringSnapshot.RoomTypeAvailability availability,
+            String error) {
+        if (availability == null) {
+            bar.setMaximum(1);
+            bar.setValue(0);
+            countLabel.setText("— of —");
+            bar.setToolTipText(error);
+            countLabel.setToolTipText(error);
+            return;
+        }
+        bar.setMaximum(Math.max(1, availability.getTotalCount()));
+        bar.setValue(availability.getAvailableCount());
+        countLabel.setText(availability.getAvailableCount() + " of " + availability.getTotalCount());
+        bar.setToolTipText(null);
+        countLabel.setToolTipText(null);
     }
 
     /**

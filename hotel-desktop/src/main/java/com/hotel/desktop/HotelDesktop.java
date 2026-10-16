@@ -1,13 +1,18 @@
 package com.hotel.desktop;
 
+import com.hotel.core.model.StaffUser;
+import com.hotel.core.service.AuthenticationService;
+import com.hotel.core.service.RoomService;
 import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
+import com.hotel.desktop.checkIn.CheckInScreen;
+import com.hotel.desktop.checkOut.CheckOutScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
 import com.hotel.desktop.houseKeepingStatus.HousekeepingScreen;
 import com.hotel.desktop.nav.NavItem;
 import com.hotel.desktop.nav.WorkspaceShell;
 import com.hotel.desktop.roomManagement.RoomManagementScreen;
-import com.hotel.desktop.roomMonitoring.RoomInventory;
+import com.hotel.desktop.roomMonitoring.RoomMonitoringDataSource;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringScreen;
 
 import java.awt.CardLayout;
@@ -24,11 +29,17 @@ public class HotelDesktop extends JFrame {
     private final LoginScreen loginScreen;
     private final WelcomeScreen welcomeScreen;
     private final DashboardScreen dashboardScreen;
+    private final CheckInScreen checkInScreen;
+    private final CheckOutScreen checkOutScreen;
     private final HousekeepingScreen housekeepingScreen;
     private final RoomMonitoringScreen roomMonitoringScreen;
-    private final RoomInventory roomInventory = new RoomInventory();
+    private final RoomService roomService = new RoomService();
+    private final AuthenticationService authenticationService = new AuthenticationService();
+    private final RoomMonitoringDataSource roomMonitoringDataSource =
+            new RoomMonitoringDataSource(roomService);
     private final RoomManagementScreen roomManagementScreen;
     private final WorkspaceShell workspaceShell;
+    private StaffUser authenticatedStaff;
 
     public HotelDesktop() {
         initComponents();
@@ -37,12 +48,17 @@ public class HotelDesktop extends JFrame {
         setLocationRelativeTo(null);
 
         cardLayout = (CardLayout) screenDeck.getLayout();
-        loginScreen = new LoginScreen(this::showDashboardPreview);
-        roomManagementScreen = new RoomManagementScreen();
+        loginScreen = new LoginScreen(authenticationService, this::onAuthenticated);
+        roomManagementScreen = new RoomManagementScreen(roomService, roomMonitoringDataSource::refresh);
         dashboardScreen = new DashboardScreen(
-                () -> showWorkspace(NavItem.ROOM_MANAGEMENT), roomInventory);
-        roomMonitoringScreen = new RoomMonitoringScreen(roomInventory);
-        housekeepingScreen = new HousekeepingScreen(roomInventory);
+                () -> showWorkspace(NavItem.ROOM_MANAGEMENT),
+                () -> showWorkspace(NavItem.CHECK_IN),
+                () -> showWorkspace(NavItem.CHECK_OUT),
+                roomMonitoringDataSource);
+        checkInScreen = new CheckInScreen();
+        checkOutScreen = new CheckOutScreen();
+        roomMonitoringScreen = new RoomMonitoringScreen(roomMonitoringDataSource);
+        housekeepingScreen = new HousekeepingScreen(roomService, roomMonitoringDataSource::refresh);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
         workspaceShell = new WorkspaceShell();
@@ -50,15 +66,18 @@ public class HotelDesktop extends JFrame {
         workspaceShell.addScreen(NavItem.ROOM_MANAGEMENT, roomManagementScreen);
         workspaceShell.addScreen(NavItem.ROOM_MONITORING, roomMonitoringScreen);
         workspaceShell.addScreen(NavItem.HOUSEKEEPING, housekeepingScreen);
+        workspaceShell.addScreen(NavItem.CHECK_IN, checkInScreen);
+        workspaceShell.addScreen(NavItem.CHECK_OUT, checkOutScreen);
         EnumSet<NavItem> availableScreens = EnumSet.of(
                 NavItem.DASHBOARD, NavItem.ROOM_MANAGEMENT,
-                NavItem.ROOM_MONITORING, NavItem.HOUSEKEEPING);
+                NavItem.ROOM_MONITORING, NavItem.HOUSEKEEPING,
+                NavItem.CHECK_IN, NavItem.CHECK_OUT);
         workspaceShell.getSidebar().setOnNavigate(item -> {
             if (availableScreens.contains(item)) {
                 showWorkspace(item);
             }
         });
-        workspaceShell.getSidebar().setOnLogout(this::showWelcome);
+        workspaceShell.getSidebar().setOnLogout(this::logout);
 
         screenDeck.add(welcomeScreen, "welcome");
         screenDeck.add(loginScreen, "login");
@@ -68,16 +87,23 @@ public class HotelDesktop extends JFrame {
     }
 
     private void showLogin() {
+        loginScreen.clearCredentialsAndReset();
         cardLayout.show(screenDeck, "login");
         getRootPane().setDefaultButton(loginScreen.getDefaultButton());
     }
 
-    private void showDashboardPreview() {
-        // This is UI-only navigation until staff authentication is implemented.
+    private void onAuthenticated(StaffUser staffUser) {
+        authenticatedStaff = staffUser;
+        workspaceShell.getSidebar().setStaffName(staffUser.getFullName());
+        workspaceShell.getSidebar().setStaffRole(staffUser.getRole());
         showWorkspace(NavItem.DASHBOARD);
     }
 
     private void showWorkspace(NavItem item) {
+        if (authenticatedStaff == null) {
+            showWelcome();
+            return;
+        }
         if (item == NavItem.DASHBOARD) {
             dashboardScreen.refreshRoomCounts();
         } else if (item == NavItem.ROOM_MONITORING) {
@@ -90,6 +116,14 @@ public class HotelDesktop extends JFrame {
         } else {
             getRootPane().setDefaultButton(null);
         }
+    }
+
+    private void logout() {
+        authenticatedStaff = null;
+        workspaceShell.getSidebar().setStaffName("Staff");
+        workspaceShell.getSidebar().setStaffRole("Receptionist");
+        loginScreen.clearCredentialsAndReset();
+        showWelcome();
     }
 
     private void showWelcome() {
