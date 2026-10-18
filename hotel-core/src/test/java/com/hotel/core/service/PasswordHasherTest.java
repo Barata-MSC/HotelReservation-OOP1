@@ -32,4 +32,14 @@ class PasswordHasherTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new PasswordHasher(1_000));
     }
+
+    @Test
+    void acceptsTenCharacterPasswordsAndRejectsNineCharacters() {
+        char[] password = "1234567890".toCharArray();
+        String hash = passwordHasher.hash(password);
+
+        assertTrue(passwordHasher.verify(password, hash));
+        assertThrows(IllegalArgumentException.class,
+                () -> passwordHasher.hash("123456789".toCharArray()));
+    }
 }

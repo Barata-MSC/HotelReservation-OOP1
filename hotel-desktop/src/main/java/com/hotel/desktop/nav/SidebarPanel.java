@@ -51,7 +51,6 @@ public class SidebarPanel extends JPanel {
 
         setStaffName("Staff");
         setStaffRole("Receptionist");
-        setBadge(NavItem.ONLINE_RESERVATIONS, "3");
     }
 
     public void setActive(NavItem item) {

@@ -68,6 +68,7 @@ public class DashboardScreen extends JPanel {
 
     private final RoomMonitoringDataSource dataSource;
     private final Runnable onManageRooms;
+    private final Runnable onNewWalkIn;
     private final Runnable onCheckIn;
     private final Runnable onCheckOut;
 
@@ -87,7 +88,14 @@ public class DashboardScreen extends JPanel {
     public DashboardScreen(
             Runnable onManageRooms, Runnable onCheckIn, Runnable onCheckOut,
             RoomMonitoringDataSource dataSource) {
+        this(onManageRooms, () -> { }, onCheckIn, onCheckOut, dataSource);
+    }
+
+    public DashboardScreen(
+            Runnable onManageRooms, Runnable onNewWalkIn, Runnable onCheckIn, Runnable onCheckOut,
+            RoomMonitoringDataSource dataSource) {
         this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
+        this.onNewWalkIn = Objects.requireNonNull(onNewWalkIn, "onNewWalkIn");
         this.onCheckIn = Objects.requireNonNull(onCheckIn, "onCheckIn");
         this.onCheckOut = Objects.requireNonNull(onCheckOut, "onCheckOut");
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
@@ -96,6 +104,7 @@ public class DashboardScreen extends JPanel {
         lblCleaningTitle.setText("Dirty");
         styleReservationTable();
         btnManageRooms.addActionListener(event -> this.onManageRooms.run());
+        btnNewWalkIn.addActionListener(event -> this.onNewWalkIn.run());
         btnCheckInAction.addActionListener(event -> this.onCheckIn.run());
         btnCheckOutAction.addActionListener(event -> this.onCheckOut.run());
         dataSource.addListener(this::displayRoomCounts);

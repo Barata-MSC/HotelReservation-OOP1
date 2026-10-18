@@ -2,6 +2,7 @@ package com.hotel.desktop;
 
 import com.hotel.core.model.StaffUser;
 import com.hotel.core.service.AuthenticationService;
+import com.hotel.core.service.ReservationService;
 import com.hotel.core.service.RoomService;
 import com.hotel.desktop.auth.LoginScreen;
 import com.hotel.desktop.auth.WelcomeScreen;
@@ -14,6 +15,8 @@ import com.hotel.desktop.nav.WorkspaceShell;
 import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringDataSource;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringScreen;
+import com.hotel.desktop.reservation.OnlineReservationScreen;
+import com.hotel.desktop.reservation.WalkInReservationScreen;
 
 import java.awt.CardLayout;
 import java.awt.Dimension;
@@ -29,12 +32,15 @@ public class HotelDesktop extends JFrame {
     private final LoginScreen loginScreen;
     private final WelcomeScreen welcomeScreen;
     private final DashboardScreen dashboardScreen;
+    private final WalkInReservationScreen walkInReservationScreen;
+    private final OnlineReservationScreen onlineReservationScreen;
     private final CheckInScreen checkInScreen;
     private final CheckOutScreen checkOutScreen;
     private final HousekeepingScreen housekeepingScreen;
     private final RoomMonitoringScreen roomMonitoringScreen;
     private final RoomService roomService = new RoomService();
     private final AuthenticationService authenticationService = new AuthenticationService();
+    private final ReservationService reservationService = new ReservationService();
     private final RoomMonitoringDataSource roomMonitoringDataSource =
             new RoomMonitoringDataSource(roomService);
     private final RoomManagementScreen roomManagementScreen;
@@ -52,11 +58,15 @@ public class HotelDesktop extends JFrame {
         roomManagementScreen = new RoomManagementScreen(roomService, roomMonitoringDataSource::refresh);
         dashboardScreen = new DashboardScreen(
                 () -> showWorkspace(NavItem.ROOM_MANAGEMENT),
+                () -> showWorkspace(NavItem.WALK_IN),
                 () -> showWorkspace(NavItem.CHECK_IN),
                 () -> showWorkspace(NavItem.CHECK_OUT),
                 roomMonitoringDataSource);
-        checkInScreen = new CheckInScreen();
-        checkOutScreen = new CheckOutScreen();
+        walkInReservationScreen = new WalkInReservationScreen(
+                reservationService, this::refreshReservationViews);
+        onlineReservationScreen = new OnlineReservationScreen();
+        checkInScreen = new CheckInScreen(reservationService, this::refreshReservationViews);
+        checkOutScreen = new CheckOutScreen(reservationService, this::refreshReservationViews);
         roomMonitoringScreen = new RoomMonitoringScreen(roomMonitoringDataSource);
         housekeepingScreen = new HousekeepingScreen(roomService, roomMonitoringDataSource::refresh);
         welcomeScreen = new WelcomeScreen(this::showLogin);
@@ -66,11 +76,14 @@ public class HotelDesktop extends JFrame {
         workspaceShell.addScreen(NavItem.ROOM_MANAGEMENT, roomManagementScreen);
         workspaceShell.addScreen(NavItem.ROOM_MONITORING, roomMonitoringScreen);
         workspaceShell.addScreen(NavItem.HOUSEKEEPING, housekeepingScreen);
+        workspaceShell.addScreen(NavItem.WALK_IN, walkInReservationScreen);
+        workspaceShell.addScreen(NavItem.ONLINE_RESERVATIONS, onlineReservationScreen);
         workspaceShell.addScreen(NavItem.CHECK_IN, checkInScreen);
         workspaceShell.addScreen(NavItem.CHECK_OUT, checkOutScreen);
         EnumSet<NavItem> availableScreens = EnumSet.of(
                 NavItem.DASHBOARD, NavItem.ROOM_MANAGEMENT,
                 NavItem.ROOM_MONITORING, NavItem.HOUSEKEEPING,
+                NavItem.WALK_IN, NavItem.ONLINE_RESERVATIONS,
                 NavItem.CHECK_IN, NavItem.CHECK_OUT);
         workspaceShell.getSidebar().setOnNavigate(item -> {
             if (availableScreens.contains(item)) {
@@ -108,6 +121,12 @@ public class HotelDesktop extends JFrame {
             dashboardScreen.refreshRoomCounts();
         } else if (item == NavItem.ROOM_MONITORING) {
             roomMonitoringScreen.refreshData();
+        } else if (item == NavItem.WALK_IN) {
+            walkInReservationScreen.refreshAvailableRooms();
+        } else if (item == NavItem.CHECK_IN) {
+            checkInScreen.refreshArrivals();
+        } else if (item == NavItem.CHECK_OUT) {
+            checkOutScreen.refreshReservations();
         }
         cardLayout.show(screenDeck, "shell");
         workspaceShell.show(item);
@@ -116,6 +135,14 @@ public class HotelDesktop extends JFrame {
         } else {
             getRootPane().setDefaultButton(null);
         }
+    }
+
+    private void refreshReservationViews() {
+        roomMonitoringDataSource.refresh();
+        roomMonitoringScreen.refreshData();
+        checkInScreen.refreshArrivals();
+        checkOutScreen.refreshReservations();
+        walkInReservationScreen.refreshAvailableRooms();
     }
 
     private void logout() {

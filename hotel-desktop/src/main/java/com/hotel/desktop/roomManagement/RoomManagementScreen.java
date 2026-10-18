@@ -267,7 +267,8 @@ public class RoomManagementScreen extends JPanel {
         JComboBox<String> type = new JComboBox<>(new String[]{"Single", "Double", "Deluxe"});
         JTextField capacity = new JTextField(18);
         JTextField rate = new JTextField(18);
-        JComboBox<String> status = new JComboBox<>(new String[]{"Available", "Occupied", "Dirty", "Under Maintenance", "Out of Service"});
+        JComboBox<String> status = new JComboBox<>(
+                new String[]{"Available", "Dirty", "Under Maintenance", "Out of Service"});
         JComboBox<String> housekeeping = new JComboBox<>(new String[]{"Clean", "Dirty"});
         Component[] fields = {roomNumber, floor, type, capacity, rate, status, housekeeping};
         if (update) {
@@ -277,7 +278,15 @@ public class RoomManagementScreen extends JPanel {
             type.setSelectedItem(roomTable.getModel().getValueAt(row, 2));
             capacity.setText(String.valueOf(roomTable.getModel().getValueAt(row, 3)));
             rate.setText(String.valueOf(roomTable.getModel().getValueAt(row, 4)).replace("PHP ", "").replace(",", ""));
-            status.setSelectedItem(roomTable.getModel().getValueAt(row, 5));
+            String currentStatus = String.valueOf(roomTable.getModel().getValueAt(row, 5));
+            if ("Occupied".equals(currentStatus)) {
+                status.addItem("Occupied (managed by check-in)");
+                status.setSelectedItem("Occupied (managed by check-in)");
+                status.setEnabled(false);
+                housekeeping.setEnabled(false);
+            } else {
+                status.setSelectedItem(currentStatus);
+            }
             housekeeping.setSelectedItem(roomTable.getModel().getValueAt(row, 6));
             roomNumber.setEditable(false);
         }
@@ -431,9 +440,11 @@ public class RoomManagementScreen extends JPanel {
             String selectedStatus = String.valueOf(statusField.getSelectedItem());
             HousekeepingStatus housekeepingStatus = parseHousekeepingStatus(
                     selectedStatus, String.valueOf(housekeepingField.getSelectedItem()));
+            Room existingRoom = update ? roomService.findByNumber(roomNumber) : null;
             String description = update
-                    ? roomService.findByNumber(roomNumber).getDescription()
+                    ? existingRoom.getDescription()
                     : roomType.getDatabaseValue() + " room";
+            boolean occupied = existingRoom != null && existingRoom.isOccupied();
             Room room = new Room(
                     roomNumber,
                     floor,
@@ -441,7 +452,7 @@ public class RoomManagementScreen extends JPanel {
                     capacity,
                     description,
                     price,
-                    "Occupied".equals(selectedStatus),
+                    occupied,
                     housekeepingStatus);
 
             if (update) {

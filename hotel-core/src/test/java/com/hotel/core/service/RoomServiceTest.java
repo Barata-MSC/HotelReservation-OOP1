@@ -96,6 +96,24 @@ class RoomServiceTest {
     }
 
     @Test
+    void preventsManualOccupancyAndHousekeepingChangesForCheckedInRooms() {
+        StubRoomRepository repository = new StubRoomRepository();
+        RoomService service = new RoomService(repository);
+
+        assertThrows(ValidationException.class,
+                () -> service.addRoom(room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.CLEAN)));
+        assertThrows(ValidationException.class,
+                () -> service.updateRoom(room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.CLEAN)));
+
+        repository.checkedInGuest = true;
+        repository.existingRoom = room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.CLEAN);
+        assertThrows(ValidationException.class,
+                () -> service.setHousekeepingStatus(101, HousekeepingStatus.DIRTY));
+        assertThrows(ValidationException.class,
+                () -> service.updateRoom(room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.DIRTY)));
+    }
+
+    @Test
     void monitoringStatusUsesDocumentedPrecedence() {
         assertEquals(RoomMonitoringStatus.OUT_OF_SERVICE, RoomMonitoringStatus.fromRoom(
                 room(101, 1, 1, BigDecimal.TEN, true, HousekeepingStatus.OUT_OF_SERVICE)));
@@ -177,6 +195,7 @@ class RoomServiceTest {
 
         private boolean roomExists;
         private boolean checkedInGuest;
+        private Room existingRoom = room(101, 1, 1, BigDecimal.TEN);
         private final List<Room> rooms = new ArrayList<>();
 
         @Override
@@ -194,7 +213,7 @@ class RoomServiceTest {
 
         @Override
         public Room findByNumber(int roomNumber) {
-            return room(101, 1, 1, BigDecimal.TEN);
+            return existingRoom;
         }
 
         @Override
