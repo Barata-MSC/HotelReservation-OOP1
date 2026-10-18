@@ -49,9 +49,11 @@ CREATE TABLE IF NOT EXISTS reservations (
   reference VARCHAR(30) NOT NULL,
   guest_id INT UNSIGNED NOT NULL,
   room_number INT NOT NULL,
+  room_rate DECIMAL(10, 2) NOT NULL,
   check_in DATE NOT NULL,
   check_out DATE NOT NULL,
   nights INT NOT NULL,
+  guest_count INT NOT NULL DEFAULT 1,
   reservation_type ENUM('Online', 'Walk-in') NOT NULL,
   status ENUM(
     'Pending',
@@ -74,6 +76,7 @@ CREATE TABLE IF NOT EXISTS reservations (
 CREATE TABLE IF NOT EXISTS transactions (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   reservation_id INT UNSIGNED NOT NULL,
+  receipt_reference VARCHAR(30) NOT NULL,
   room_rate DECIMAL(10, 2) NOT NULL,
   nights INT NOT NULL,
   room_cost DECIMAL(10, 2) NOT NULL,
@@ -85,6 +88,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   payment_status ENUM('Paid', 'Unpaid') NOT NULL DEFAULT 'Unpaid',
   paid_at TIMESTAMP NULL DEFAULT NULL,
   PRIMARY KEY (id),
+  UNIQUE KEY uq_transactions_receipt_reference (receipt_reference),
   UNIQUE KEY uq_transactions_reservation (reservation_id),
   CONSTRAINT fk_transactions_reservation
     FOREIGN KEY (reservation_id) REFERENCES reservations (id)

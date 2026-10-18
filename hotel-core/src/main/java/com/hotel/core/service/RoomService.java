@@ -28,6 +28,9 @@ public class RoomService {
 
     public void addRoom(Room room) throws SQLException {
         validateRoom(room);
+        if (room.isOccupied()) {
+            throw new ValidationException("Room occupancy is managed by reservation check-in and check-out.");
+        }
         if (roomRepository.existsByNumber(room.getRoomNumber())) {
             throw new ValidationException("Room number already exists: " + room.getRoomNumber());
         }
@@ -36,11 +39,19 @@ public class RoomService {
 
     public void updateRoom(Room room) throws SQLException {
         validateRoom(room);
-        if (isUnavailableStatus(room.getHousekeepingStatus())
-                && roomRepository.hasCheckedInGuest(room.getRoomNumber())) {
+        Room existingRoom = roomRepository.findByNumber(room.getRoomNumber());
+        if (existingRoom.isOccupied() != room.isOccupied()) {
+            throw new ValidationException("Room occupancy is managed by reservation check-in and check-out.");
+        }
+        boolean hasCheckedInGuest = roomRepository.hasCheckedInGuest(room.getRoomNumber());
+        if (isUnavailableStatus(room.getHousekeepingStatus()) && hasCheckedInGuest) {
             throw new ValidationException(
                     "A room with a checked-in guest cannot be set to "
                             + room.getHousekeepingStatus().getDatabaseValue());
+        }
+        if (hasCheckedInGuest
+                && existingRoom.getHousekeepingStatus() != room.getHousekeepingStatus()) {
+            throw new ValidationException("Housekeeping status cannot be changed while a guest is checked in.");
         }
         roomRepository.update(room);
     }
@@ -65,9 +76,14 @@ public class RoomService {
         if (status == null) {
             throw new ValidationException("Housekeeping status is required");
         }
-        if (isUnavailableStatus(status) && roomRepository.hasCheckedInGuest(roomNumber)) {
+        Room existingRoom = roomRepository.findByNumber(roomNumber);
+        boolean hasCheckedInGuest = roomRepository.hasCheckedInGuest(roomNumber);
+        if (isUnavailableStatus(status) && hasCheckedInGuest) {
             throw new ValidationException(
                     "A room with a checked-in guest cannot be set to " + status.getDatabaseValue());
+        }
+        if (hasCheckedInGuest && existingRoom.getHousekeepingStatus() != status) {
+            throw new ValidationException("Housekeeping status cannot be changed while a guest is checked in.");
         }
         roomRepository.setHousekeepingStatus(roomNumber, status);
     }

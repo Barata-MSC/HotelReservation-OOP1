@@ -17,6 +17,7 @@ public final class PasswordHasher {
     private static final int SALT_LENGTH_BYTES = 16;
     private static final int MIN_ITERATIONS = 10_000;
     private static final int MAX_ITERATIONS = 2_000_000;
+    public static final int MIN_PASSWORD_LENGTH = 10;
     private static final int MAX_PASSWORD_LENGTH = 128;
     private static final Pattern BASE64_URL = Pattern.compile("[A-Za-z0-9_-]+");
 
@@ -101,8 +102,11 @@ public final class PasswordHasher {
     }
 
     private static void validatePassword(char[] password) {
-        if (password == null || password.length < 12 || password.length > MAX_PASSWORD_LENGTH) {
-            throw new IllegalArgumentException("Password must be between 12 and 128 characters");
+        if (password == null || password.length < MIN_PASSWORD_LENGTH
+                || password.length > MAX_PASSWORD_LENGTH) {
+            throw new IllegalArgumentException(
+                    "Password must be between " + MIN_PASSWORD_LENGTH + " and "
+                            + MAX_PASSWORD_LENGTH + " characters");
         }
     }
 

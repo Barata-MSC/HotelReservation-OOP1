@@ -42,7 +42,8 @@ public final class StaffAccountSetup {
         char[] password = null;
         char[] confirmation = null;
         try {
-            password = console.readPassword("Password (12-128 characters): ");
+            password = console.readPassword(
+                    "Password (" + PasswordHasher.MIN_PASSWORD_LENGTH + "-128 characters): ");
             confirmation = console.readPassword("Confirm password: ");
             if (password == null || confirmation == null) {
                 throw new IllegalStateException("Password input was interrupted");

@@ -8,7 +8,7 @@ A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-mod
 
 Both applications will connect to **one shared database** and call the same `hotel-core` business logic. Online reservations will be saved with reservation type `Online` and initial status `Pending`, then made visible to receptionists in the desktop application.
 
-> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist. The `hotel-web` module has not been created yet and is planned for the final phase. The desktop has Welcome and Login top-level cards, plus a shared workspace shell with Dashboard, Room management, Room monitoring, Housekeeping, a Check-in placeholder, and a Check-out UI preview. Room management and housekeeping persist room data through `hotel-core`; Room Monitoring and Dashboard room counts use a shared database snapshot. Staff sign-in uses database-backed receptionist accounts and PBKDF2 password hashes. Walk-in reservation, Online reservations, reservation-backed Check in/out, dashboard reservation data, and dashboard quick actions other than “Manage rooms” remain placeholders or previews. The checklists below describe planned work; no feature is marked complete here.
+> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist; `hotel-web` remains planned for the final phase. The desktop includes database-backed walk-in reservations, online reservation review, check-in, check-out, cash billing and receipts, room management, housekeeping, and room monitoring. Existing databases must apply the documented reservation workflow migration before using the new reservation screens. Staff sign-in uses database-backed receptionist accounts and PBKDF2 password hashes. Dashboard reservation summary rows remain illustrative preview data; the workflow screens themselves use the shared database. Feature checkboxes below remain unchecked until implementation and testing are complete.
 
 ## Contents
 
@@ -123,7 +123,7 @@ This is a proposed layout for the future web module, not a claim that the module
 
 ## Desktop Screens
 
-The Java Swing staff application is developed in `hotel-desktop`. It has Welcome and Login top-level cards and a shared workspace shell with Dashboard, Room management, Room monitoring, Housekeeping, a Check-in placeholder, and a Check-out UI preview. Staff login authenticates receptionist accounts against the shared database using salted password hashes. Room Management and Housekeeping use the shared core/database for room data; Monitoring is read-only and Dashboard room counts use the same live snapshot. Dashboard reservation data and Check-out's illustrative reservations are static; reservation-backed check-in and check-out remain planned.
+The Java Swing staff application is developed in `hotel-desktop`. It has Welcome and Login top-level cards and a shared workspace shell with Dashboard, Room management, Room monitoring, Housekeeping, Walk-in reservation, Online reservations, Check in, and Check out. Staff login authenticates receptionist accounts against the shared database using salted password hashes. Room Management, Housekeeping, Monitoring, walk-in, check-in, and check-out use the shared core/database. Online reservations is a placeholder for final implementation; Dashboard room counts use a live snapshot while its reservation summary data remains illustrative.
 
 | Screen | Purpose |
 |---|---|
@@ -138,7 +138,7 @@ The Java Swing staff application is developed in `hotel-desktop`. It has Welcome
 
 The desktop application will call `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
 
-The shared workspace shell switches among six mounted workspace cards. Walk-in reservation, Online reservations, reservation-backed Check in and Check out, and dashboard quick actions other than “Manage rooms” remain unimplemented. Check-out's local sample workflow is a UI preview and does not save records. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for room-status precedence and source-document alignment notes.
+The shared workspace shell switches among eight mounted workspace cards. Sidebar routes are wired, and dashboard quick actions for room management, walk-in bookings, check-in, and check-out navigate to their associated screens. The Online reservations card is a placeholder marked for final implementation; the customer-facing website and online submission flow are not available yet. Implemented reservation operations persist through `hotel-core`; check-out stores payment details and a receipt reference, then marks the room Dirty for housekeeping. Dashboard reservation summary rows remain a static visual preview. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for workflow rules and source-document alignment notes.
 
 ## Technology Stack
 
@@ -313,6 +313,8 @@ Apply that schema to the local database. The tables must exist before running da
 
 For a database initialized from an older version of the schema, apply `hotel-core/src/main/resources/db/migrations/001_add_users_is_enabled.sql` once (it safely skips the change when the column already exists). Do not drop or recreate the database to apply this migration.
 
+For an existing database that already has the guest, reservation, and transaction tables, also apply `hotel-core/src/main/resources/db/migrations/002_reservation_workflows.sql` once after the users migration. It adds reservation rate/guest-count snapshots and transaction receipt references required by the desktop workflows. The migration is not idempotent; do not run it more than once. New databases get these fields from `schema.sql` and do not need this migration.
+
 For local development, use a dedicated database user rather than the database administrator/root account where possible.
 
 ### 3. Configure the shared database connection
@@ -341,13 +343,13 @@ After applying the schema/migration and configuring `db.properties`, run the acc
 mvn -pl hotel-core org.codehaus.mojo:exec-maven-plugin:3.5.0:java -Dexec.mainClass=com.hotel.core.setup.StaffAccountSetup
 ```
 
-Enter a receptionist username, display name, and a password between 12 and 128 characters. Password input is hidden; the utility stores a salted PBKDF2-HMAC-SHA256 hash and creates an enabled account with the `Receptionist` role. It does not create an administrator or provide a public registration screen. The existing users table enforces username uniqueness.
+Enter a receptionist username, display name, and a password between 10 and 128 characters. Password input is hidden; the utility stores a salted PBKDF2-HMAC-SHA256 hash and creates an enabled account with the `Receptionist` role. It does not create an administrator or provide a public registration screen. The existing users table enforces username uniqueness.
 
 If an older database already contains the legacy `staff` placeholder row, it is not a valid account and is not overwritten; choose a different unique username. The migration and setup utility leave existing user rows intact.
 
 ### 6. Run the desktop application
 
-In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's Welcome screen. Start opens the Login screen; valid receptionist credentials are checked against the shared database before the existing Dashboard opens. Invalid credentials leave the Login screen available for another attempt. A database connection/configuration error is reported separately. Logout clears the in-memory staff profile and returns to Welcome. The Check-in workspace card remains an explicitly labeled placeholder until reservation-backed check-in is implemented.
+In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's Welcome screen. Start opens the Login screen; valid receptionist credentials are checked against the shared database before the Dashboard opens. Walk-in bookings are created as Confirmed reservations for today. Pending online bookings can be confirmed or declined. Check-in updates both the reservation and room; checkout accepts cash, persists the bill and receipt, changes the reservation to Checked-Out, and marks the room Dirty. Logout clears the in-memory staff profile and returns to Welcome. A valid database configuration and the required schema/migrations are necessary for these workflows.
 
 The `hotel-web` module has **not been created yet**. The customer website setup and web run instructions will be added when that final phase begins.
 

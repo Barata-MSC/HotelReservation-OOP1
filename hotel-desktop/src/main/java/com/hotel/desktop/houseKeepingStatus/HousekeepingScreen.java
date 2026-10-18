@@ -27,9 +27,9 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import javax.swing.SwingWorker;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.JTextField;
-import java.util.concurrent.ExecutionException;
 import javax.swing.border.EmptyBorder;
 
 /** Housekeeping status editor backed by the shared room service. */
@@ -43,25 +43,27 @@ public final class HousekeepingScreen extends JPanel {
     private static final Color HEADER_TEXT = new Color(74, 65, 0);
     private static final Color ROW_LINE = new Color(236, 230, 196);
     private static final Color SELECTED = new Color(255, 243, 184);
-    private static final Color GREEN = new Color(0, 230, 80);
+    private static final Color GREEN = new Color(46, 125, 50);
+    private static final Color DIRTY = new Color(245, 158, 11);
+    private static final Color MAINTENANCE = new Color(75, 67, 98);
+    private static final Color OUT_OF_SERVICE = new Color(107, 114, 128);
     private static final Color ERROR = new Color(179, 38, 30);
 
     private final RoomService roomService;
     private final Runnable onRoomChanged;
     private final JTextField roomNumberField = new JTextField();
-    private final JLabel noRoomLabel = new JLabel("Find a room to see its current status.");
-    private final JLabel currentStatusLabel = new JLabel(" ");
+    private final JLabel currentStatusLabel = new JLabel("Current status   Find a room");
     private final JLabel roomValue = new JLabel("—");
     private final JLabel typeValue = new JLabel("Not recorded");
     private final JLabel floorValue = new JLabel("—");
     private final JLabel occupancyValue = new JLabel("—");
     private final JLabel bannerTitle = new JLabel(" ");
     private final JLabel bannerMessage = new JLabel(" ");
+    private final JLabel bannerIcon = new JLabel("i");
     private final JPanel banner = new JPanel(new BorderLayout(12, 0));
     private final JPanel bannerHolder = new JPanel(new BorderLayout());
     private final JPanel optionsPanel = new JPanel(new GridLayout(2, 2, 12, 12));
     private final ButtonGroup statusGroup = new ButtonGroup();
-    private final JButton findButton = primaryButton("Find");
     private final JButton updateButton = primaryButton("Update");
     private final JButton cancelButton = outlinedButton("Cancel");
     private int currentRoomNumber = -1;
@@ -80,10 +82,6 @@ public final class HousekeepingScreen extends JPanel {
         updateButton.setEnabled(false);
     }
 
-    public HousekeepingScreen(RoomService roomService) {
-        this(roomService, () -> { });
-    }
-
     private JPanel createContent() {
         JPanel content = new JPanel(new BorderLayout());
         content.setBackground(CANVAS);
@@ -98,7 +96,6 @@ public final class HousekeepingScreen extends JPanel {
         JPanel workflow = createWorkflow();
         body.add(createHeader(), BorderLayout.NORTH);
         body.add(workflow, BorderLayout.CENTER);
-        body.add(bannerHolder, BorderLayout.SOUTH);
         content.add(body, BorderLayout.CENTER);
         return content;
     }
@@ -109,6 +106,9 @@ public final class HousekeepingScreen extends JPanel {
         JLabel title = new JLabel("Housekeeping");
         title.setFont(new Font("Georgia", Font.BOLD, 36));
         title.setForeground(INK);
+        JLabel subtitle = new JLabel("Review room readiness and update housekeeping status");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        subtitle.setForeground(MUTED);
         JLabel date = new JLabel(LocalDate.now().format(
                 DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         date.setFont(new Font("Segoe UI", Font.PLAIN, 15));
@@ -117,17 +117,41 @@ public final class HousekeepingScreen extends JPanel {
         labels.setOpaque(false);
         labels.setLayout(new javax.swing.BoxLayout(labels, javax.swing.BoxLayout.Y_AXIS));
         labels.add(title);
+        labels.add(javax.swing.Box.createVerticalStrut(3));
+        labels.add(subtitle);
+        labels.add(javax.swing.Box.createVerticalStrut(5));
         labels.add(date);
         header.add(labels, BorderLayout.CENTER);
         return header;
     }
 
     private JPanel createWorkflow() {
+        JPanel workflow = new JPanel(new BorderLayout(0, 12));
+        workflow.setOpaque(false);
+
         JPanel columns = new JPanel(new GridLayout(1, 2, 16, 0));
         columns.setOpaque(false);
         columns.add(createLookupColumn());
         columns.add(createStatusColumn());
-        return columns;
+        Dimension columnsSize = columns.getPreferredSize();
+        columns.setPreferredSize(new Dimension(0, columnsSize.height));
+        JScrollPane workArea = new JScrollPane(
+                columns,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        workArea.setBorder(BorderFactory.createEmptyBorder());
+        workArea.setOpaque(false);
+        workArea.getViewport().setOpaque(false);
+        workArea.getVerticalScrollBar().setUnitIncrement(16);
+        workflow.add(workArea, BorderLayout.CENTER);
+
+        bannerHolder.setOpaque(false);
+        bannerHolder.setPreferredSize(new Dimension(10, 64));
+        bannerHolder.setMinimumSize(new Dimension(0, 64));
+        bannerHolder.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
+        bannerHolder.add(banner, BorderLayout.CENTER);
+        workflow.add(bannerHolder, BorderLayout.SOUTH);
+        return workflow;
     }
 
     private JPanel createLookupColumn() {
@@ -142,12 +166,15 @@ public final class HousekeepingScreen extends JPanel {
         findCard.add(fieldLabel("Room no."));
         roomNumberField.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         roomNumberField.setForeground(INK);
+        roomNumberField.setToolTipText("Enter a room number, for example 101");
         roomNumberField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(INK, 2, true), new EmptyBorder(0, 14, 0, 14)));
+                BorderFactory.createLineBorder(new Color(190, 185, 168), 1, true),
+                new EmptyBorder(0, 14, 0, 14)));
         roomNumberField.setPreferredSize(new Dimension(100, 48));
         roomNumberField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         roomNumberField.addActionListener(event -> findRoom());
 
+        JButton findButton = primaryButton("Find");
         findButton.addActionListener(event -> findRoom());
         JPanel lookup = new JPanel(new BorderLayout(10, 0));
         lookup.setOpaque(false);
@@ -155,38 +182,57 @@ public final class HousekeepingScreen extends JPanel {
         lookup.add(findButton, BorderLayout.EAST);
         lookup.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         findCard.add(lookup);
-        JLabel databaseHint = hint("Room details are loaded from the shared database.");
-        databaseHint.setBorder(new EmptyBorder(8, 0, 0, 0));
-        findCard.add(databaseHint);
+        findCard.add(sampleRooms());
         alignChildrenLeft(findCard);
         column.add(findCard);
         column.add(javax.swing.Box.createVerticalStrut(16));
+        column.add(createStatusGuide());
 
-        JPanel currentCard = card();
-        currentCard.setLayout(new javax.swing.BoxLayout(currentCard, javax.swing.BoxLayout.Y_AXIS));
-        currentCard.add(stepHeading("2", "Current status"));
-        noRoomLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        noRoomLabel.setForeground(MUTED);
-        noRoomLabel.setBorder(new EmptyBorder(10, 38, 4, 0));
-        currentCard.add(noRoomLabel);
-        currentStatusLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        currentStatusLabel.setForeground(INK);
-        currentStatusLabel.setBorder(new EmptyBorder(8, 38, 2, 0));
-        currentCard.add(currentStatusLabel);
-
-        JPanel facts = new JPanel(new GridLayout(2, 2, 0, 0));
-        facts.setOpaque(false);
-        facts.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, INK));
-        facts.add(fact("Room", roomValue));
-        facts.add(fact("Type", typeValue));
-        facts.add(fact("Floor", floorValue));
-        facts.add(fact("Occupancy", occupancyValue));
-        facts.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(2, 0, 0, 0, INK), new EmptyBorder(4, 0, 0, 0)));
-        currentCard.add(facts);
-        alignChildrenLeft(currentCard);
-        column.add(currentCard);
         return column;
+    }
+
+    private JPanel createStatusGuide() {
+        JPanel guide = card();
+        guide.setLayout(new javax.swing.BoxLayout(guide, javax.swing.BoxLayout.Y_AXIS));
+        guide.add(stepHeading("i", "Status guide"));
+        guide.add(statusGuideRow("Clean", "Ready for the next guest.", GREEN));
+        guide.add(statusGuideRow("Dirty", "Needs cleaning before use.", DIRTY));
+        guide.add(statusGuideRow("Under Maintenance", "Unavailable while being repaired.", MAINTENANCE));
+        guide.add(statusGuideRow("Out of Service", "Removed from the room inventory.", OUT_OF_SERVICE));
+
+        JLabel note = new JLabel("<html>Occupied rooms cannot be moved to Under Maintenance "
+                + "or Out of Service.</html>");
+        note.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        note.setForeground(MUTED);
+        note.setBorder(new EmptyBorder(12, 0, 0, 0));
+        note.setAlignmentX(Component.LEFT_ALIGNMENT);
+        guide.add(note);
+        alignChildrenLeft(guide);
+        return guide;
+    }
+
+    private JPanel statusGuideRow(String status, String description, Color color) {
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(9, 0, 0, 0));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel badge = new JLabel(status, JLabel.CENTER);
+        badge.setOpaque(true);
+        badge.setBackground(color);
+        badge.setForeground(color == DIRTY || color == GREEN ? INK : Color.WHITE);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        badge.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(color.darker(), 1, true),
+                new EmptyBorder(3, 7, 3, 7)));
+        row.add(badge, BorderLayout.WEST);
+
+        JLabel detail = new JLabel(description);
+        detail.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        detail.setForeground(MUTED);
+        row.add(detail, BorderLayout.CENTER);
+        return row;
     }
 
     private JPanel createStatusColumn() {
@@ -198,7 +244,6 @@ public final class HousekeepingScreen extends JPanel {
         banner.setBackground(Color.WHITE);
         banner.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(INK, 2, true), new EmptyBorder(10, 14, 10, 14)));
-        JLabel bannerIcon = new JLabel("i");
         bannerIcon.setOpaque(true);
         bannerIcon.setBackground(SELECTED);
         bannerIcon.setForeground(INK);
@@ -216,30 +261,49 @@ public final class HousekeepingScreen extends JPanel {
         bannerText.add(bannerTitle);
         bannerText.add(bannerMessage);
         banner.add(bannerText, BorderLayout.CENTER);
-        bannerHolder.setOpaque(false);
-        bannerHolder.add(banner, BorderLayout.CENTER);
-        bannerHolder.setVisible(false);
+        banner.setVisible(false);
 
         JPanel statusCard = card();
         statusCard.setLayout(new javax.swing.BoxLayout(statusCard, javax.swing.BoxLayout.Y_AXIS));
+        statusCard.add(stepHeading("2", "Room status"));
+        currentStatusLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        currentStatusLabel.setForeground(MUTED);
+        currentStatusLabel.setOpaque(true);
+        currentStatusLabel.setPreferredSize(new Dimension(300, 42));
+        currentStatusLabel.setMinimumSize(new Dimension(0, 42));
+        currentStatusLabel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        currentStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        currentStatusLabel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(ROW_LINE, 1, true),
+                new EmptyBorder(7, 12, 7, 12)));
+        statusCard.add(currentStatusLabel);
+        statusCard.add(javax.swing.Box.createVerticalStrut(8));
+
+        JPanel facts = new JPanel(new GridLayout(2, 2, 0, 0));
+        facts.setOpaque(false);
+        facts.setPreferredSize(new Dimension(300, 78));
+        facts.setMinimumSize(new Dimension(0, 78));
+        facts.setMaximumSize(new Dimension(Integer.MAX_VALUE, 78));
+        facts.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, ROW_LINE),
+                new EmptyBorder(6, 0, 0, 0)));
+        facts.add(fact("Room", roomValue));
+        facts.add(fact("Type", typeValue));
+        facts.add(fact("Floor", floorValue));
+        facts.add(fact("Occupancy", occupancyValue));
+        statusCard.add(facts);
+        statusCard.add(javax.swing.Box.createVerticalStrut(12));
         statusCard.add(stepHeading("3", "Choose new status"));
         statusCard.add(hint("Pick one status, then press Update."));
         optionsPanel.setOpaque(false);
         optionsPanel.setBorder(new EmptyBorder(2, 0, 0, 0));
         addStatusOption("Clean", "Ready to be offered to guests.", HousekeepingStatus.CLEAN, GREEN);
-        addStatusOption("Dirty", "Needs cleaning before the next guest.", HousekeepingStatus.DIRTY, SELECTED);
+        addStatusOption("Dirty", "Needs cleaning before the next guest.", HousekeepingStatus.DIRTY, DIRTY);
         addStatusOption("Under Maintenance", "Being repaired. Cannot be booked.",
-                HousekeepingStatus.UNDER_MAINTENANCE, INK);
+                HousekeepingStatus.UNDER_MAINTENANCE, MAINTENANCE);
         addStatusOption("Out of Service", "Taken offline. Cannot be booked.",
-                HousekeepingStatus.OUT_OF_SERVICE, Color.WHITE);
+                HousekeepingStatus.OUT_OF_SERVICE, OUT_OF_SERVICE);
         statusCard.add(optionsPanel);
-
-        JLabel restriction = new JLabel("<html>A room marked Occupied cannot be set to Under Maintenance "
-                + "or Out of Service in this preview.</html>");
-        restriction.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        restriction.setForeground(MUTED);
-        restriction.setBorder(new EmptyBorder(14, 0, 0, 0));
-        statusCard.add(restriction);
 
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         actions.setOpaque(false);
@@ -255,16 +319,14 @@ public final class HousekeepingScreen extends JPanel {
     }
 
     private void addStatusOption(
-            String name,
-            String description,
-            HousekeepingStatus status,
-            Color swatchColor) {
+            String name, String description, HousekeepingStatus status, Color swatchColor) {
         JPanel option = new JPanel(new BorderLayout(10, 0));
         option.setBackground(Color.WHITE);
         option.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(INK, 2, true), new EmptyBorder(8, 10, 8, 10)));
-        option.setPreferredSize(new Dimension(180, 94));
-        option.setMinimumSize(new Dimension(120, 84));
+                BorderFactory.createLineBorder(new Color(220, 216, 204), 2, true),
+                new EmptyBorder(10, 12, 10, 12)));
+        option.setPreferredSize(new Dimension(180, 100));
+        option.setMinimumSize(new Dimension(120, 90));
 
         JRadioButton radio = new JRadioButton();
         radio.setOpaque(false);
@@ -282,10 +344,12 @@ public final class HousekeepingScreen extends JPanel {
         JLabel swatch = new JLabel(name);
         swatch.setOpaque(true);
         swatch.setBackground(swatchColor);
-        swatch.setForeground(status == HousekeepingStatus.UNDER_MAINTENANCE ? SUN : INK);
+        swatch.setForeground(status == HousekeepingStatus.CLEAN
+                || status == HousekeepingStatus.DIRTY ? INK : Color.WHITE);
         swatch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         swatch.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(INK, 1, true), new EmptyBorder(2, 8, 2, 8)));
+                BorderFactory.createLineBorder(swatchColor.darker(), 1, true),
+                new EmptyBorder(2, 8, 2, 8)));
         copy.add(title);
         copy.add(detail);
         copy.add(javax.swing.Box.createVerticalStrut(4));
@@ -302,12 +366,11 @@ public final class HousekeepingScreen extends JPanel {
             }
             selectedStatus = status;
             updateButton.setEnabled(currentRoomNumber >= 0);
-            option.setBackground(SELECTED);
-            for (Component component : optionsPanel.getComponents()) {
-                if (component instanceof JPanel other && other != option) {
-                    other.setBackground(Color.WHITE);
-                }
-            }
+            resetStatusOptionStyles();
+            option.setBackground(new Color(255, 249, 221));
+            option.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(SUN, 2, true),
+                    new EmptyBorder(10, 12, 10, 12)));
             clearBanner();
         };
         radio.addActionListener(select);
@@ -322,6 +385,22 @@ public final class HousekeepingScreen extends JPanel {
             }
         });
         optionsPanel.add(option);
+    }
+
+    private JPanel sampleRooms() {
+        JLabel label = new JLabel("<html>Use the room number shown in Room Management.</html>");
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(MUTED);
+        label.setBorder(new EmptyBorder(8, 0, 0, 0));
+        return wrap(label);
+    }
+
+    private static JPanel wrap(Component component) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(0, 0, 0, 0));
+        panel.add(component, BorderLayout.CENTER);
+        return panel;
     }
 
     private void findRoom() {
@@ -340,29 +419,39 @@ public final class HousekeepingScreen extends JPanel {
             return;
         }
 
-        clearCurrentRoom();
-        setBusy(true);
-        showBanner("info", "Loading room.", "Room details are being read from the database.");
-        new SwingWorker<Room, Void>() {
-            @Override
-            protected Room doInBackground() throws SQLException {
-                return roomService.findByNumber(number);
-            }
+        final Room room;
+        try {
+            room = roomService.findByNumber(number);
+        } catch (RoomNotFoundException exception) {
+            clearCurrentRoom();
+            showBanner("error", "Room not found.", "No room with number " + number + " exists.");
+            return;
+        } catch (SQLException exception) {
+            clearCurrentRoom();
+            showBanner("error", "Database unavailable.", exception.getMessage());
+            return;
+        }
+        if (room == null) {
+            clearCurrentRoom();
+            showBanner("error", "Room not found.", "No room with number " + number + " exists.");
+            return;
+        }
 
-            @Override
-            protected void done() {
-                setBusy(false);
-                try {
-                    showRoom(get());
-                    showBanner("info", "Room found.", "Review the current status and choose an update.");
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    showBanner("error", "Room lookup interrupted.", "Try the lookup again.");
-                } catch (ExecutionException exception) {
-                    showLookupError(exception.getCause());
-                }
-            }
-        }.execute();
+        currentRoomNumber = number;
+        currentRoom = room;
+        selectedStatus = null;
+        statusGroup.clearSelection();
+        resetStatusOptionStyles();
+        setStatusOptionsEnabled(true);
+        updateButton.setEnabled(false);
+        setCurrentStatus(RoomMonitoringStatus.fromRoom(room));
+        roomValue.setText(Integer.toString(room.getRoomNumber()));
+        typeValue.setText(room.getRoomType().getDatabaseValue());
+        floorValue.setText(Integer.toString(room.getFloor()));
+        occupancyValue.setText(room.isOccupied() ? "Occupied" : "Not occupied");
+        showBanner("info", "Room found.", "Review the current status and choose an update.");
+        revalidate();
+        repaint();
     }
 
     private void updateStatus() {
@@ -371,43 +460,35 @@ public final class HousekeepingScreen extends JPanel {
         }
         if (currentRoom.getHousekeepingStatus() == selectedStatus) {
             showBanner("info", "No change needed.", "Room " + currentRoomNumber
-                    + " is already " + selectedStatus.getDatabaseValue() + ".");
+                    + " is already " + displayStatus(RoomMonitoringStatus.fromRoom(currentRoom)) + ".");
             return;
         }
-        int roomNumber = currentRoomNumber;
-        HousekeepingStatus newStatus = selectedStatus;
-        setBusy(true);
-        showBanner("info", "Saving room status.", "The database is being updated.");
-        new SwingWorker<Room, Void>() {
-            @Override
-            protected Room doInBackground() throws SQLException {
-                roomService.setHousekeepingStatus(roomNumber, newStatus);
-                onRoomChanged.run();
-                return roomService.findByNumber(roomNumber);
-            }
-
-            @Override
-            protected void done() {
-                setBusy(false);
-                try {
-                    showRoom(get());
-                    selectedStatus = null;
-                    statusGroup.clearSelection();
-                    updateButton.setEnabled(false);
-                    showBanner("success", "Status updated.",
-                            "Room " + roomNumber + " is now "
-                                    + currentRoom.getHousekeepingStatus().getDatabaseValue() + ".");
-                    onRoomChanged.run();
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    restoreCurrentRoomControls();
-                    showBanner("error", "Status update interrupted.", "Refresh the room and try again.");
-                } catch (ExecutionException exception) {
-                    restoreCurrentRoomControls();
-                    showUpdateError(exception.getCause());
-                }
-            }
-        }.execute();
+        if (currentRoom.isOccupied()) {
+            showBanner("error", "Status not changed.",
+                    "Housekeeping status cannot be changed while a guest is checked in.");
+            return;
+        }
+        try {
+            roomService.setHousekeepingStatus(currentRoomNumber, selectedStatus);
+            currentRoom = roomService.findByNumber(currentRoomNumber);
+            setCurrentStatus(RoomMonitoringStatus.fromRoom(currentRoom));
+            occupancyValue.setText(currentRoom.isOccupied() ? "Occupied" : "Not occupied");
+            selectedStatus = null;
+            statusGroup.clearSelection();
+            resetStatusOptionStyles();
+            updateButton.setEnabled(false);
+            onRoomChanged.run();
+            showBanner("success", "Status updated.",
+                    "Room " + currentRoomNumber + " is now "
+                            + displayStatus(RoomMonitoringStatus.fromRoom(currentRoom)) + ".");
+        } catch (ValidationException exception) {
+            showBanner("error", "Status not changed.", exception.getMessage());
+        } catch (RoomNotFoundException exception) {
+            clearCurrentRoom();
+            showBanner("error", "Room no longer exists.", "Find another room and try again.");
+        } catch (SQLException exception) {
+            showBanner("error", "Database unavailable.", exception.getMessage());
+        }
     }
 
     private void cancel() {
@@ -420,24 +501,6 @@ public final class HousekeepingScreen extends JPanel {
         roomNumberField.requestFocusInWindow();
     }
 
-    private void showRoom(Room room) {
-        currentRoom = room;
-        currentRoomNumber = room.getRoomNumber();
-        selectedStatus = null;
-        statusGroup.clearSelection();
-        setStatusOptionsEnabled(true);
-        updateButton.setEnabled(false);
-        noRoomLabel.setVisible(false);
-        RoomMonitoringStatus status = RoomMonitoringStatus.fromRoom(room);
-        currentStatusLabel.setText("Current status: " + displayStatus(status));
-        roomValue.setText(Integer.toString(room.getRoomNumber()));
-        typeValue.setText(room.getRoomType().getDatabaseValue());
-        floorValue.setText(Integer.toString(room.getFloor()));
-        occupancyValue.setText(room.isOccupied() ? "Occupied" : "Not occupied");
-        revalidate();
-        repaint();
-    }
-
     private void clearCurrentRoom() {
         currentRoomNumber = -1;
         currentRoom = null;
@@ -445,8 +508,9 @@ public final class HousekeepingScreen extends JPanel {
         statusGroup.clearSelection();
         updateButton.setEnabled(false);
         setStatusOptionsEnabled(false);
-        noRoomLabel.setVisible(true);
-        currentStatusLabel.setText(" ");
+        currentStatusLabel.setText("Current status   Find a room");
+        currentStatusLabel.setForeground(MUTED);
+        currentStatusLabel.setBackground(Color.WHITE);
         roomValue.setText("—");
         typeValue.setText("Not recorded");
         floorValue.setText("—");
@@ -455,68 +519,48 @@ public final class HousekeepingScreen extends JPanel {
         repaint();
     }
 
-    private void setBusy(boolean busy) {
-        findButton.setEnabled(!busy);
-        roomNumberField.setEnabled(!busy);
-        cancelButton.setEnabled(!busy);
-        if (busy) {
-            setStatusOptionsEnabled(false);
-            updateButton.setEnabled(false);
-        }
-    }
-
-    private void restoreCurrentRoomControls() {
-        if (currentRoom != null) {
-            setStatusOptionsEnabled(true);
-            updateButton.setEnabled(selectedStatus != null);
-        }
-    }
-
-    private void showLookupError(Throwable error) {
-        clearCurrentRoom();
-        if (error instanceof RoomNotFoundException) {
-            showBanner("error", "Room not found.", "No room with that number exists in the database.");
-        } else {
-            showBanner("error", "Unable to load room.", "Check the database connection and try again.");
-        }
-    }
-
-    private void showUpdateError(Throwable error) {
-        if (error instanceof ValidationException) {
-            showBanner("error", "Status not changed.", error.getMessage());
-        } else if (error instanceof RoomNotFoundException) {
-            clearCurrentRoom();
-            showBanner("error", "Room no longer exists.", "Find another room and try again.");
-        } else {
-            showBanner("error", "Unable to save room status.",
-                    "Check the database connection and try the update again.");
-        }
-    }
-
     private void showBanner(String kind, String title, String message) {
         bannerTitle.setText(title);
         bannerMessage.setText(message);
+        bannerIcon.setText(switch (kind) {
+            case "error" -> "!";
+            case "success" -> "✓";
+            default -> "i";
+        });
         Color tone = switch (kind) {
-            case "error" -> ERROR;
-            case "success" -> GREEN;
-            default -> SELECTED;
+            case "error" -> new Color(255, 235, 232);
+            case "success" -> new Color(232, 245, 233);
+            default -> new Color(255, 249, 221);
         };
         banner.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(kind.equals("error") ? ERROR : INK, 2, true),
                 new EmptyBorder(10, 14, 10, 14)));
         banner.setBackground(tone);
+        banner.setVisible(true);
         bannerHolder.setVisible(true);
         revalidate();
         repaint();
     }
 
     private void clearBanner() {
-        bannerHolder.setVisible(false);
+        banner.setVisible(false);
+        bannerHolder.setVisible(true);
     }
 
     private void setStatusOptionsEnabled(boolean enabled) {
         setEnabledRecursively(optionsPanel, enabled);
         optionsPanel.setBackground(enabled ? Color.WHITE : new Color(245, 245, 245));
+    }
+
+    private void resetStatusOptionStyles() {
+        for (Component component : optionsPanel.getComponents()) {
+            if (component instanceof JPanel option) {
+                option.setBackground(Color.WHITE);
+                option.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(220, 216, 204), 2, true),
+                        new EmptyBorder(10, 12, 10, 12)));
+            }
+        }
     }
 
     private static void setEnabledRecursively(Component component, boolean enabled) {
@@ -532,6 +576,20 @@ public final class HousekeepingScreen extends JPanel {
         return status == RoomMonitoringStatus.AVAILABLE ? "Clean" : status.getDisplayName();
     }
 
+    private void setCurrentStatus(RoomMonitoringStatus status) {
+        Color statusColor = switch (status) {
+            case AVAILABLE -> GREEN;
+            case DIRTY -> DIRTY;
+            case OCCUPIED -> INK;
+            case UNDER_MAINTENANCE -> MAINTENANCE;
+            case OUT_OF_SERVICE -> OUT_OF_SERVICE;
+        };
+        currentStatusLabel.setText("Current status   " + displayStatus(status));
+        currentStatusLabel.setBackground(new Color(
+                statusColor.getRed(), statusColor.getGreen(), statusColor.getBlue(), 35));
+        currentStatusLabel.setForeground(statusColor);
+    }
+
     /** BoxLayout centres children whose alignment differs, so every child is aligned left. */
     private static void alignChildrenLeft(JPanel parent) {
         for (Component child : parent.getComponents()) {
@@ -545,7 +603,8 @@ public final class HousekeepingScreen extends JPanel {
         JPanel panel = new JPanel();
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(INK, 2, true), new EmptyBorder(18, 20, 18, 20)));
+                BorderFactory.createLineBorder(new Color(220, 216, 204), 1, true),
+                new EmptyBorder(20, 22, 20, 22)));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
         return panel;
     }
@@ -555,12 +614,12 @@ public final class HousekeepingScreen extends JPanel {
         heading.setOpaque(false);
         JLabel step = new JLabel(number);
         step.setOpaque(true);
-        step.setBackground(INK);
-        step.setForeground(SUN);
+        step.setBackground(SELECTED);
+        step.setForeground(INK);
         step.setFont(new Font("Segoe UI", Font.BOLD, 14));
         step.setHorizontalAlignment(JLabel.CENTER);
         step.setPreferredSize(new Dimension(28, 28));
-        step.setBorder(BorderFactory.createLineBorder(INK, 1, true));
+        step.setBorder(BorderFactory.createLineBorder(new Color(232, 205, 72), 1, true));
         JLabel text = new JLabel(title);
         text.setForeground(INK);
         text.setFont(new Font("Georgia", Font.BOLD, 19));
