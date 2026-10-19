@@ -87,6 +87,23 @@ public class ReservationService {
         return reservationRepository.findArrivals(today);
     }
 
+    public List<Reservation> findReservationsForCheckIn(String query) throws SQLException {
+        String normalized = requireText(query, "Reservation reference or guest name");
+        return reservationRepository.findForCheckIn(normalized);
+    }
+
+    public List<Reservation> findReservationsAffectedByHousekeepingChange(
+            int roomNumber, LocalDate today) throws SQLException {
+        validateRoomNumber(roomNumber);
+        Objects.requireNonNull(today, "Today is required");
+        return reservationRepository.findAffectedByHousekeepingChange(roomNumber, today);
+    }
+
+    public List<Room> findReplacementRooms(String reference) throws SQLException {
+        validateReference(reference);
+        return reservationRepository.findReplacementRooms(reference.trim());
+    }
+
     public List<Reservation> findCheckedInReservations() throws SQLException {
         return reservationRepository.findCheckedIn();
     }
@@ -97,9 +114,21 @@ public class ReservationService {
     }
 
     public Reservation checkIn(String reference, LocalDate today) throws SQLException {
+        return checkIn(reference, today, null, false);
+    }
+
+    public Reservation checkIn(
+            String reference,
+            LocalDate today,
+            Integer replacementRoomNumber,
+            boolean discountVerifiedAtCheckIn) throws SQLException {
         validateReference(reference);
         Objects.requireNonNull(today, "Today is required");
-        return reservationRepository.checkIn(reference.trim(), today);
+        if (replacementRoomNumber != null) {
+            validateRoomNumber(replacementRoomNumber);
+        }
+        return reservationRepository.checkIn(
+                reference.trim(), today, replacementRoomNumber, discountVerifiedAtCheckIn);
     }
 
     public CheckoutBill calculateCheckoutBill(Reservation reservation) {
@@ -175,11 +204,18 @@ public class ReservationService {
         if (guest.classification() == GuestClassification.DISCOUNTED) {
             requireText(guest.discountIdType(), "Discount ID type");
             requireText(guest.discountIdNumber(), "Discount ID number");
-            if (!guest.discountVerified()) {
-                throw new ValidationException("Verify the discount ID before applying a discount.");
+            if (!guest.discountVerified() || !guest.discountNameMatches()) {
+                throw new ValidationException(
+                        "Verify the discount ID, confirm its name matches the guest, and confirm it is valid.");
             }
-        } else if (guest.discountVerified()) {
-            throw new ValidationException("Regular guests cannot be marked as discount-verified.");
+            if (guest.discountIdExpiry() == null
+                    || guest.discountIdExpiry().isBefore(LocalDate.now())) {
+                throw new ValidationException("The discount ID must be unexpired.");
+            }
+        } else if (guest.discountVerified() || guest.discountNameMatches()
+                || guest.discountIdExpiry() != null || guest.discountIdType() != null
+                || guest.discountIdNumber() != null) {
+            throw new ValidationException("Regular guests cannot have verified discount ID details.");
         }
     }
 

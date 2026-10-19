@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS guests (
   discount_id_type VARCHAR(50),
   discount_id_number VARCHAR(100),
   discount_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  discount_id_expiry DATE,
+  discount_name_matches BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
