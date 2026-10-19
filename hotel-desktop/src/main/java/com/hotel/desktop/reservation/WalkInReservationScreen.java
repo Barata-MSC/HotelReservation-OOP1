@@ -13,7 +13,6 @@ import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -39,13 +38,20 @@ public final class WalkInReservationScreen extends JPanel {
             new JComboBox<>(new String[]{"Regular", "Discounted"});
     private final JTextField idTypeField = StaffUi.textField(16);
     private final JTextField idNumberField = StaffUi.textField(16);
-    private final JCheckBox idVerified = new JCheckBox("Discount ID checked and verified");
+    private final JTextField idExpiryField = StaffUi.textField(12);
+    private final JCheckBox idNameMatches =
+            new JCheckBox("ID name matches the guest");
+    private final JCheckBox idVerified =
+            new JCheckBox("ID visually verified and unexpired");
     private final JTextField checkInField = StaffUi.textField(12);
     private final JTextField checkOutField = StaffUi.textField(12);
     private final JTextField guestCountField = StaffUi.textField(4);
     private final JComboBox<Room> roomBox = new JComboBox<>();
     private final JLabel feedback = StaffUi.feedbackLabel();
     private final JLabel rateLabel = new JLabel("Search dates to list available rooms.");
+    private javax.swing.JButton findRoomsButton;
+    private javax.swing.JButton createButton;
+    private boolean loadingRooms;
 
     public WalkInReservationScreen(ReservationService reservationService, Runnable onReservationCreated) {
         this.reservationService = java.util.Objects.requireNonNull(reservationService, "reservationService");
@@ -66,7 +72,7 @@ public final class WalkInReservationScreen extends JPanel {
                     javax.swing.JList<?> list, Object value, int index, boolean selected, boolean focus) {
                 String text = value instanceof Room room
                         ? "Room " + room.getRoomNumber() + " · " + room.getRoomType().getDatabaseValue()
-                                + " · " + room.getCapacity() + " guest(s) · PHP "
+                                + " · " + room.getCapacity() + " guest(s) · "
                                 + room.getPricePerDay().setScale(2).toPlainString() + "/night"
                         : "No room selected";
                 return super.getListCellRendererComponent(list, text, index, selected, focus);
@@ -96,6 +102,8 @@ public final class WalkInReservationScreen extends JPanel {
         row = addField(fields, row, "Guest classification", classificationBox);
         row = addField(fields, row, "Discount ID type", idTypeField);
         row = addField(fields, row, "Discount ID number", idNumberField);
+        row = addField(fields, row, "Discount ID expiry (yyyy-MM-dd)", idExpiryField);
+        row = addField(fields, row, "", idNameMatches);
         row = addField(fields, row, "", idVerified);
         row = addField(fields, row, "Check-in (yyyy-MM-dd)", checkInField);
         row = addField(fields, row, "Check-out (yyyy-MM-dd)", checkOutField);
@@ -103,9 +111,9 @@ public final class WalkInReservationScreen extends JPanel {
         JPanel roomSelection = new JPanel(new BorderLayout(8, 0));
         roomSelection.setOpaque(false);
         roomSelection.add(roomBox, BorderLayout.CENTER);
-        javax.swing.JButton findRooms = StaffUi.secondaryButton("Find rooms");
-        findRooms.addActionListener(event -> reloadAvailableRooms());
-        roomSelection.add(findRooms, BorderLayout.EAST);
+        findRoomsButton = StaffUi.secondaryButton("Find rooms");
+        findRoomsButton.addActionListener(event -> reloadAvailableRooms());
+        roomSelection.add(findRoomsButton, BorderLayout.EAST);
         row = addField(fields, row, "Available rooms", roomSelection);
         rateLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
         rateLabel.setForeground(StaffUi.MUTED);
@@ -121,9 +129,9 @@ public final class WalkInReservationScreen extends JPanel {
         JPanel actions = new JPanel(new BorderLayout());
         actions.setOpaque(false);
         actions.add(feedback, BorderLayout.CENTER);
-        javax.swing.JButton create = StaffUi.primaryButton("Create walk-in reservation");
-        create.addActionListener(event -> createReservation());
-        actions.add(create, BorderLayout.EAST);
+        createButton = StaffUi.primaryButton("Create walk-in reservation");
+        createButton.addActionListener(event -> createReservation());
+        actions.add(createButton, BorderLayout.EAST);
         formCard.add(actions, BorderLayout.SOUTH);
         content.add(formCard, BorderLayout.CENTER);
         return content;
@@ -151,35 +159,59 @@ public final class WalkInReservationScreen extends JPanel {
     }
 
     private void reloadAvailableRooms() {
+        if (loadingRooms) {
+            return;
+        }
+        final LocalDate checkIn;
+        final LocalDate checkOut;
+        final int guests;
         try {
-            LocalDate checkIn = LocalDate.parse(checkInField.getText().trim());
-            LocalDate checkOut = LocalDate.parse(checkOutField.getText().trim());
-            int guests = Integer.parseInt(guestCountField.getText().trim());
-            List<Room> available = reservationService.findAvailableRooms(checkIn, checkOut, guests);
-            roomBox.removeAllItems();
-            for (Room room : available) {
-                roomBox.addItem(room);
-            }
-            StaffUi.showFeedback(feedback,
-                    available.size() + (available.size() == 1 ? " available room found." : " available rooms found."),
-                    false);
-            if (available.isEmpty()) {
-                StaffUi.showFeedback(feedback, "No clean room is available for those dates and guest count.", true);
-            }
-            updateSelectedRate();
+            checkIn = LocalDate.parse(checkInField.getText().trim());
+            checkOut = LocalDate.parse(checkOutField.getText().trim());
+            guests = Integer.parseInt(guestCountField.getText().trim());
         } catch (DateTimeParseException | NumberFormatException exception) {
             roomBox.removeAllItems();
             rateLabel.setText("—");
             StaffUi.showFeedback(feedback, "Enter valid ISO dates and a whole guest count.", true);
-        } catch (ValidationException exception) {
-            roomBox.removeAllItems();
-            rateLabel.setText("—");
-            StaffUi.showFeedback(feedback, exception.getMessage(), true);
-        } catch (SQLException exception) {
-            roomBox.removeAllItems();
-            rateLabel.setText("—");
-            StaffUi.showFeedback(feedback, "Unable to load room availability: " + exception.getMessage(), true);
+            return;
         }
+
+        loadingRooms = true;
+        roomBox.setEnabled(false);
+        roomBox.removeAllItems();
+        rateLabel.setText("Loading availability…");
+        findRoomsButton.setEnabled(false);
+        StaffUi.showFeedback(feedback, "Checking room availability…", false);
+        StaffUi.runInBackground(
+                () -> reservationService.findAvailableRooms(checkIn, checkOut, guests),
+                available -> {
+                    loadingRooms = false;
+                    roomBox.setEnabled(true);
+                    findRoomsButton.setEnabled(true);
+                    for (Room room : available) {
+                        roomBox.addItem(room);
+                    }
+                    StaffUi.showFeedback(feedback,
+                            available.isEmpty()
+                                    ? "No clean room is available for those dates and guest count."
+                                    : available.size() + (available.size() == 1
+                                            ? " available room found." : " available rooms found."),
+                            available.isEmpty());
+                    updateSelectedRate();
+                },
+                error -> {
+                    loadingRooms = false;
+                    roomBox.setEnabled(true);
+                    findRoomsButton.setEnabled(true);
+                    roomBox.removeAllItems();
+                    rateLabel.setText("—");
+                    if (error instanceof ValidationException) {
+                        StaffUi.showFeedback(feedback, error.getMessage(), true);
+                    } else {
+                        StaffUi.showFeedback(feedback,
+                                "Unable to load room availability: " + error.getMessage(), true);
+                    }
+                });
     }
 
     public void refreshAvailableRooms() {
@@ -187,10 +219,20 @@ public final class WalkInReservationScreen extends JPanel {
     }
 
     private void createReservation() {
+        if (createButton == null || !createButton.isEnabled()) {
+            return;
+        }
+        final Guest guest;
+        final Room room;
+        final int guestCount;
+        final LocalDate checkIn;
+        final LocalDate checkOut;
         try {
             GuestClassification classification = "Discounted".equals(classificationBox.getSelectedItem())
                     ? GuestClassification.DISCOUNTED : GuestClassification.REGULAR;
-            Guest guest = new Guest(
+            LocalDate discountIdExpiry = classification == GuestClassification.DISCOUNTED
+                    ? LocalDate.parse(idExpiryField.getText().trim()) : null;
+            guest = new Guest(
                     0,
                     nameField.getText().trim(),
                     contactField.getText().trim(),
@@ -198,47 +240,67 @@ public final class WalkInReservationScreen extends JPanel {
                     classification,
                     classification == GuestClassification.DISCOUNTED ? idTypeField.getText().trim() : null,
                     classification == GuestClassification.DISCOUNTED ? idNumberField.getText().trim() : null,
-                    classification == GuestClassification.DISCOUNTED && idVerified.isSelected());
-            Room room = (Room) roomBox.getSelectedItem();
+                    classification == GuestClassification.DISCOUNTED && idVerified.isSelected(),
+                    discountIdExpiry,
+                    classification == GuestClassification.DISCOUNTED && idNameMatches.isSelected());
+            room = (Room) roomBox.getSelectedItem();
             if (room == null) {
                 throw new ValidationException("Find and select an available room first.");
             }
-            int guestCount = Integer.parseInt(guestCountField.getText().trim());
-            Reservation reservation = reservationService.createWalkIn(
-                    guest,
-                    room.getRoomNumber(),
-                    LocalDate.parse(checkInField.getText().trim()),
-                    LocalDate.parse(checkOutField.getText().trim()),
-                    guestCount);
-            onReservationCreated.run();
-            reloadAvailableRooms();
-            StaffUi.showFeedback(feedback,
-                    "Reservation " + reservation.reference() + " confirmed. Room "
-                            + reservation.roomNumber() + " is ready for check-in.",
-                    false);
+            guestCount = Integer.parseInt(guestCountField.getText().trim());
+            checkIn = LocalDate.parse(checkInField.getText().trim());
+            checkOut = LocalDate.parse(checkOutField.getText().trim());
         } catch (NumberFormatException | DateTimeParseException exception) {
-            StaffUi.showFeedback(feedback, "Enter valid dates and whole numbers for guest count.", true);
+            StaffUi.showFeedback(feedback,
+                    "Enter valid dates (yyyy-MM-dd) and a whole number for guest count.", true);
+            return;
         } catch (ValidationException exception) {
             StaffUi.showFeedback(feedback, exception.getMessage(), true);
-        } catch (SQLException exception) {
-            StaffUi.showFeedback(feedback,
-                    "Unable to save the reservation: " + exception.getMessage(), true);
+            return;
         }
+
+        createButton.setEnabled(false);
+        StaffUi.showFeedback(feedback, "Saving walk-in reservation…", false);
+        StaffUi.runInBackground(
+                () -> reservationService.createWalkIn(
+                        guest, room.getRoomNumber(), checkIn, checkOut, guestCount),
+                reservation -> {
+                    createButton.setEnabled(true);
+                    onReservationCreated.run();
+                    StaffUi.showFeedback(feedback,
+                            "Reservation " + reservation.reference() + " confirmed. Room "
+                                    + reservation.roomNumber() + " is ready for check-in.",
+                            false);
+                    reloadAvailableRooms();
+                },
+                error -> {
+                    createButton.setEnabled(true);
+                    if (error instanceof ValidationException) {
+                        StaffUi.showFeedback(feedback, error.getMessage(), true);
+                    } else {
+                        StaffUi.showFeedback(feedback,
+                                "Unable to save the reservation: " + error.getMessage(), true);
+                    }
+                });
     }
 
     private void updateDiscountFields() {
         boolean discounted = "Discounted".equals(classificationBox.getSelectedItem());
         idTypeField.setEnabled(discounted);
         idNumberField.setEnabled(discounted);
+        idExpiryField.setEnabled(discounted);
+        idNameMatches.setEnabled(discounted);
         idVerified.setEnabled(discounted);
         if (!discounted) {
             idVerified.setSelected(false);
+            idNameMatches.setSelected(false);
+            idExpiryField.setText("");
         }
     }
 
     private void updateSelectedRate() {
         Room room = (Room) roomBox.getSelectedItem();
         rateLabel.setText(room == null ? "—"
-                : "PHP " + room.getPricePerDay().setScale(2).toPlainString() + " per night");
+                : room.getPricePerDay().setScale(2).toPlainString() + " per night");
     }
 }

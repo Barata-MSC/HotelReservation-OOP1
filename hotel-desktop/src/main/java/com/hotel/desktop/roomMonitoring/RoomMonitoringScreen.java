@@ -718,6 +718,6 @@ public final class RoomMonitoringScreen extends JPanel {
         NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
         formatter.setMinimumFractionDigits(2);
         formatter.setMaximumFractionDigits(2);
-        return "PHP " + formatter.format(price);
+        return formatter.format(price);
     }
 }

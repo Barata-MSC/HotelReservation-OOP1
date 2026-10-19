@@ -68,7 +68,8 @@ public class HotelDesktop extends JFrame {
         checkInScreen = new CheckInScreen(reservationService, this::refreshReservationViews);
         checkOutScreen = new CheckOutScreen(reservationService, this::refreshReservationViews);
         roomMonitoringScreen = new RoomMonitoringScreen(roomMonitoringDataSource);
-        housekeepingScreen = new HousekeepingScreen(roomService, roomMonitoringDataSource::refresh);
+        housekeepingScreen = new HousekeepingScreen(
+                roomService, reservationService, roomMonitoringDataSource::refresh);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
         workspaceShell = new WorkspaceShell();

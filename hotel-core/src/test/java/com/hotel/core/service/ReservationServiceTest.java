@@ -67,11 +67,28 @@ class ReservationServiceTest {
     @Test
     void requiresVerifiedDiscountIdBeforeCreatingDiscountedGuest() {
         Guest unverified = new Guest(0, "Guest", "09170000000", "guest@example.com",
-                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", false);
+                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", false,
+                TODAY.plusYears(1), false);
 
         assertThrows(ValidationException.class,
                 () -> new ReservationService(new StubReservationRepository())
                         .createWalkIn(unverified, 101, TODAY, TODAY.plusDays(1), 1));
+    }
+
+    @Test
+    void rejectsDiscountIdWhenNameDoesNotMatchOrIdHasExpired() {
+        ReservationService service = new ReservationService(new StubReservationRepository());
+        Guest mismatchedName = new Guest(0, "Guest", "09170000000", "guest@example.com",
+                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", true,
+                TODAY.plusYears(1), false);
+        Guest expiredId = new Guest(0, "Guest", "09170000000", "guest@example.com",
+                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", true,
+                TODAY.minusDays(1), true);
+
+        assertThrows(ValidationException.class,
+                () -> service.createWalkIn(mismatchedName, 101, TODAY, TODAY.plusDays(1), 1));
+        assertThrows(ValidationException.class,
+                () -> service.createWalkIn(expiredId, 101, TODAY, TODAY.plusDays(1), 1));
     }
 
     @Test
@@ -84,7 +101,8 @@ class ReservationServiceTest {
         assertEquals(new BigDecimal("224.00"), regular.total());
 
         Guest discounted = new Guest(1, "Guest", "09170000000", "guest@example.com",
-                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", true);
+                GuestClassification.DISCOUNTED, "Senior Citizen", "SC-001", true,
+                TODAY.plusYears(1), true);
         CheckoutBill discountedBill = service.calculateCheckoutBill(reservation(discounted));
         assertEquals(new BigDecimal("40.00"), discountedBill.discountAmount());
         assertEquals(new BigDecimal("0.00"), discountedBill.taxAmount());

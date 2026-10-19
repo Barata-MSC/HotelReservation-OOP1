@@ -313,7 +313,7 @@ Apply that schema to the local database. The tables must exist before running da
 
 For a database initialized from an older version of the schema, apply `hotel-core/src/main/resources/db/migrations/001_add_users_is_enabled.sql` once (it safely skips the change when the column already exists). Do not drop or recreate the database to apply this migration.
 
-For an existing database that already has the guest, reservation, and transaction tables, also apply `hotel-core/src/main/resources/db/migrations/002_reservation_workflows.sql` once after the users migration. It adds reservation rate/guest-count snapshots and transaction receipt references required by the desktop workflows. The migration is not idempotent; do not run it more than once. New databases get these fields from `schema.sql` and do not need this migration.
+For an existing database that already has the guest, reservation, and transaction tables, apply `hotel-core/src/main/resources/db/migrations/002_reservation_workflows.sql` once after the users migration. It adds reservation rate/guest-count snapshots and transaction receipt references required by the desktop workflows. If the database has not yet been migrated for discount-ID verification, apply `hotel-core/src/main/resources/db/migrations/003_discount_id_verification.sql` once after migration 002. These migrations are not idempotent; do not run them more than once. New databases get these fields from `schema.sql` and do not need these migrations.
 
 For local development, use a dedicated database user rather than the database administrator/root account where possible.
 

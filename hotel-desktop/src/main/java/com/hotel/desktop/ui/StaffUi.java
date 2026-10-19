@@ -5,6 +5,10 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -12,6 +16,7 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 public final class StaffUi {
@@ -122,6 +127,32 @@ public final class StaffUi {
     public static void showFeedback(JLabel label, String message, boolean error) {
         label.setText(message);
         label.setForeground(error ? new Color(179, 38, 30) : MUTED);
+    }
+
+    public static <T> void runInBackground(
+            Callable<T> operation,
+            Consumer<T> onSuccess,
+            Consumer<Throwable> onFailure) {
+        new SwingWorker<T, Void>() {
+            @Override
+            protected T doInBackground() throws Exception {
+                return operation.call();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    onSuccess.accept(get());
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    onFailure.accept(exception);
+                } catch (ExecutionException | CancellationException exception) {
+                    Throwable cause = exception instanceof ExecutionException
+                            && exception.getCause() != null ? exception.getCause() : exception;
+                    onFailure.accept(cause);
+                }
+            }
+        }.execute();
     }
 
     private static JButton button(String text, Color background, Color foreground) {

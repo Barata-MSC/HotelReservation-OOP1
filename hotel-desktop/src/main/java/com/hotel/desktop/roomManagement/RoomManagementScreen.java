@@ -6,6 +6,7 @@ import com.hotel.core.model.Room;
 import com.hotel.core.model.enums.HousekeepingStatus;
 import com.hotel.core.model.enums.RoomType;
 import com.hotel.core.service.RoomService;
+import com.hotel.desktop.ui.StaffUi;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -61,6 +62,7 @@ public class RoomManagementScreen extends JPanel {
     private final DefaultTableModel roomModel;
     private final TableRowSorter<DefaultTableModel> roomSorter;
     private final JLabel feedback = new JLabel("Room data is loaded from the database.");
+    private boolean dataOperationPending;
 
     public RoomManagementScreen() {
         this(new RoomService(), () -> { });
@@ -380,8 +382,13 @@ public class RoomManagementScreen extends JPanel {
     }
 
     private void loadRooms() {
+        if (dataOperationPending) {
+            return;
+        }
         String query = searchField.getText().trim();
-        try {
+        dataOperationPending = true;
+        feedback.setText("Loading room data…");
+        StaffUi.runInBackground(() -> {
             List<Room> rooms;
             if (query.isEmpty()) {
                 rooms = roomService.findAll();
@@ -399,7 +406,9 @@ public class RoomManagementScreen extends JPanel {
                     rooms = roomService.findAll();
                 }
             }
-
+            return rooms;
+        }, rooms -> {
+            dataOperationPending = false;
             roomModel.setRowCount(0);
             for (Room room : rooms) {
                 roomModel.addRow(new Object[]{
@@ -415,11 +424,15 @@ public class RoomManagementScreen extends JPanel {
             roomCount.setText(rooms.size() + (rooms.size() == 1 ? " room" : " rooms"));
             feedback.setText("Room data is loaded from the database.");
             applyFilters();
-        } catch (SQLException e) {
+        }, error -> {
+            dataOperationPending = false;
             feedback.setText("Unable to load room data.");
-            showDatabaseError(e);
-        }
-        showInventory();
+            if (error instanceof SQLException sqlException) {
+                showDatabaseError(sqlException);
+            } else {
+                showValidationError(error.getMessage());
+            }
+        });
     }
 
     private void saveRoom(
@@ -431,49 +444,64 @@ public class RoomManagementScreen extends JPanel {
             JTextField rateField,
             JComboBox<String> statusField,
             JComboBox<String> housekeepingField) {
+        if (dataOperationPending) {
+            return;
+        }
+        final int roomNumber;
+        final int floor;
+        final int capacity;
+        final RoomType roomType;
+        final BigDecimal price;
+        final HousekeepingStatus housekeepingStatus;
         try {
-            int roomNumber = Integer.parseInt(roomNumberField.getText().trim());
-            int floor = Integer.parseInt(floorField.getText().trim());
-            int capacity = Integer.parseInt(capacityField.getText().trim());
-            RoomType roomType = parseRoomType(String.valueOf(typeField.getSelectedItem()));
-            BigDecimal price = new BigDecimal(rateField.getText().trim().replace(",", ""));
+            roomNumber = Integer.parseInt(roomNumberField.getText().trim());
+            floor = Integer.parseInt(floorField.getText().trim());
+            capacity = Integer.parseInt(capacityField.getText().trim());
+            roomType = parseRoomType(String.valueOf(typeField.getSelectedItem()));
+            price = new BigDecimal(rateField.getText().trim().replace(",", ""));
             String selectedStatus = String.valueOf(statusField.getSelectedItem());
-            HousekeepingStatus housekeepingStatus = parseHousekeepingStatus(
+            housekeepingStatus = parseHousekeepingStatus(
                     selectedStatus, String.valueOf(housekeepingField.getSelectedItem()));
-            Room existingRoom = update ? roomService.findByNumber(roomNumber) : null;
-            String description = update
-                    ? existingRoom.getDescription()
-                    : roomType.getDatabaseValue() + " room";
-            boolean occupied = existingRoom != null && existingRoom.isOccupied();
-            Room room = new Room(
-                    roomNumber,
-                    floor,
-                    roomType,
-                    capacity,
-                    description,
-                    price,
-                    occupied,
-                    housekeepingStatus);
-
-            if (update) {
-                roomService.updateRoom(room);
-                feedback.setText("Room updated.");
-            } else {
-                roomService.addRoom(room);
-                feedback.setText("Room added.");
-            }
-            onRoomChanged.run();
-            loadRooms();
         } catch (NumberFormatException e) {
             showValidationError("Enter whole numbers for room number, floor, and capacity, and a valid price.");
+            return;
         } catch (ValidationException e) {
             showValidationError(e.getMessage());
-        } catch (RoomNotFoundException e) {
-            showValidationError(e.getMessage());
-        } catch (SQLException e) {
-            feedback.setText("Unable to save room data.");
-            showDatabaseError(e);
+            return;
         }
+
+        dataOperationPending = true;
+        feedback.setText("Saving room…");
+        StaffUi.runInBackground(() -> {
+            Room room = new Room(
+                    roomNumber, floor, roomType, capacity,
+                    roomType.getDatabaseValue() + " room", price, false, housekeepingStatus);
+            if (update) {
+                Room existingRoom = roomService.findByNumber(roomNumber);
+                room = new Room(roomNumber, floor, roomType, capacity, existingRoom.getDescription(),
+                        price, existingRoom.isOccupied(), housekeepingStatus);
+                roomService.updateRoom(room);
+            } else {
+                roomService.addRoom(room);
+            }
+            return room;
+        }, savedRoom -> {
+            dataOperationPending = false;
+            feedback.setText(update ? "Room updated." : "Room added.");
+            onRoomChanged.run();
+            showInventory();
+            loadRooms();
+        }, error -> {
+            dataOperationPending = false;
+            if (error instanceof ValidationException || error instanceof RoomNotFoundException) {
+                showValidationError(error.getMessage());
+            } else if (error instanceof SQLException sqlException) {
+                feedback.setText("Unable to save room data.");
+                showDatabaseError(sqlException);
+            } else {
+                showValidationError(error.getMessage());
+            }
+        });
     }
 
     private static Integer parseRoomNumber(String query) {
@@ -517,7 +545,7 @@ public class RoomManagementScreen extends JPanel {
         NumberFormat formatter = NumberFormat.getNumberInstance(Locale.US);
         formatter.setMinimumFractionDigits(0);
         formatter.setMaximumFractionDigits(2);
-        return "PHP " + formatter.format(price);
+        return formatter.format(price);
     }
 
     private void showValidationError(String message) {
