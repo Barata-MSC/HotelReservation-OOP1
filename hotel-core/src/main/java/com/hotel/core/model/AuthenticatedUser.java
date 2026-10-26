@@ -2,17 +2,26 @@ package com.hotel.core.model;
 
 import java.util.Objects;
 
-/** Authenticated staff profile; contains no credential material. */
-public final class StaffUser {
+public final class AuthenticatedUser {
 
     private final int id;
     private final String username;
+    private final String email;
+    private final String contactNumber;
     private final String fullName;
-    private final String role;
+    private final UserRole role;
 
-    public StaffUser(int id, String username, String fullName, String role) {
+    public AuthenticatedUser(
+            int id,
+            String username,
+            String email,
+            String contactNumber,
+            String fullName,
+            UserRole role) {
         this.id = id;
         this.username = Objects.requireNonNull(username, "username");
+        this.email = email;
+        this.contactNumber = contactNumber;
         this.fullName = Objects.requireNonNull(fullName, "fullName");
         this.role = Objects.requireNonNull(role, "role");
     }
@@ -25,11 +34,19 @@ public final class StaffUser {
         return username;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public String getContactNumber() {
+        return contactNumber;
+    }
+
     public String getFullName() {
         return fullName;
     }
 
-    public String getRole() {
+    public UserRole getRole() {
         return role;
     }
 }

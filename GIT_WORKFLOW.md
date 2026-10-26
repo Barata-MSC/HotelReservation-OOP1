@@ -5,8 +5,7 @@ This guide is for the Object-Oriented Hotel Reservation System team using Git wi
 The repository is a Maven multi-module project:
 
 - `hotel-core` — shared models, repositories, services, exceptions, database configuration, schema, and business rules.
-- `hotel-desktop` — Java Swing application for receptionists and hotel staff. The first implementation focus is walk-in reservations and staff workflows.
-- `hotel-web` — future Spring Boot/Thymeleaf customer website. It will be added in the final phase and use `hotel-core`.
+- `hotel-desktop` — Java Swing application for administrator and customer workspaces.
 
 Run Maven commands from the repository root, where the parent `pom.xml` is located, unless a command explicitly says otherwise.
 
@@ -56,7 +55,7 @@ Use a branch that describes one task. Examples aligned with the current project 
 - `fix/date-overlap-validation`
 - `docs/readme-setup`
 
-Use lowercase names with hyphens. Avoid spaces. Since `hotel-core` is shared, coordinate changes to its public methods, models, and database schema with teammates working in `hotel-desktop` or, later, `hotel-web`.
+Use lowercase names with hyphens. Avoid spaces. Since `hotel-core` is shared, coordinate changes to its public methods, models, and database schema with teammates working in `hotel-desktop`.
 
 ### B. Check the changes
 
@@ -89,12 +88,6 @@ Test the desktop module and also build required modules, including `hotel-core`:
 
 ```bash
 mvn -pl hotel-desktop -am test
-```
-
-When `hotel-web` is created, module-specific commands can target it in the same way, for example:
-
-```bash
-mvn -pl hotel-web -am test
 ```
 
 Use only commands for modules that exist in the checked-out branch. If a Maven command fails, resolve the failure or document the blocker before requesting a merge. Do not mark a feature complete merely because the code compiles; test its behavior too.
@@ -186,10 +179,10 @@ Do not resolve a conflict by automatically discarding another teammate's work. A
 
 ## 5. Team coordination for the multi-module project
 
-- **Work on walk-in reservation and staff features first.** The initial implementation focus is `hotel-core` plus `hotel-desktop`; online booking in `hotel-web` comes last.
-- **Keep business rules in `hotel-core`.** Do not independently reimplement availability, reservation validation, guest-classification rules, or billing formulas inside Swing UI code. The future website must also call the core services.
+- **Work on shared core and Swing workflows.** The administrator and customer workspaces both live in `hotel-desktop`.
+- **Keep business rules in `hotel-core`.** Do not independently reimplement availability, reservation validation, guest-classification rules, or billing formulas inside Swing UI code.
 - **Coordinate shared-core changes.** If a change alters a model, service method, enum, schema, or repository contract, tell teammates whose modules depend on it and include any necessary updates and tests in the pull request.
-- **Coordinate database schema changes.** `hotel-core/src/main/resources/db/schema.sql` is shared by both applications. Discuss table or column changes before merging, and note any required local database update in the pull request.
+- **Coordinate database schema changes.** `hotel-core/src/main/resources/db/schema.sql` is shared by both workspaces. Discuss table or column changes before merging, and note any required local database update in the pull request.
 - **Avoid overlapping edits.** When possible, agree on file or module ownership before multiple people change the same files.
 - **Build from the repository root.** This verifies that the parent POM and module dependencies work together.
 

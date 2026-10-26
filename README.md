@@ -1,20 +1,19 @@
 # Object-Oriented Hotel Reservation System
 
-A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-module project. The system will provide two applications that use the same shared business logic and MariaDB/MySQL database:
+A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-module project. The system uses a shared core and MariaDB/MySQL database:
 
-- **`hotel-desktop`** — a Java Swing application for receptionists and hotel staff. Development starts with walk-in reservations, room management, check-in/check-out, billing, receipts, housekeeping, and room monitoring.
-- **`hotel-web`** — a customer-facing Spring Boot and Thymeleaf website for online reservations. This is the final development phase and will be added after the shared core and desktop workflows are established.
-- **`hotel-core`** — shared Java code containing the models, repositories, services, configuration, exceptions, database schema, and all business rules used by both applications.
+- **`hotel-desktop`** — the Java Swing application for both administrators and customers. It hosts staff workflows and the customer workspace in the same `JFrame`.
+- **`hotel-core`** — shared Java code containing the models, repositories, services, configuration, exceptions, database schema, and all business rules.
 
-Both applications will connect to **one shared database** and call the same `hotel-core` business logic. Online reservations will be saved with reservation type `Online` and initial status `Pending`, then made visible to receptionists in the desktop application.
+The desktop application connects to the shared database and calls `hotel-core`. Customer-facing screens are Java Swing; this project does not use HTML, CSS, JavaScript, Spring Boot, or a separate web module.
 
-> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules exist; `hotel-web` remains planned for the final phase. The desktop includes database-backed walk-in reservations, online reservation review, check-in, check-out, cash billing and receipts, room management, housekeeping, and room monitoring. Existing databases must apply the documented reservation workflow migration before using the new reservation screens. Staff sign-in uses database-backed receptionist accounts and PBKDF2 password hashes. Dashboard reservation summary rows remain illustrative preview data; the workflow screens themselves use the shared database. Feature checkboxes below remain unchecked until implementation and testing are complete.
+> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules include role-aware Admin/Customer authentication, customer booking and payment-proof screens, an administrator Reservations workspace, a filtered booking-history ledger, live dashboard reservation summaries, and room dirty-time reset support. Existing databases must apply migrations 001–005 in order. Passwords are stored as PBKDF2 hashes. Database-backed runtime behavior still depends on local database configuration. Feature checkboxes below remain unchecked until implementation and testing are complete.
 
 ## Contents
 
 - [Project Goals](#project-goals)
 - [Planned Features](#planned-features)
-- [Website Pages](#website-pages)
+- [Customer Workspace](#customer-workspace)
 - [Desktop Screens](#desktop-screens)
 - [Technology Stack](#technology-stack)
 - [Architecture](#architecture)
@@ -29,15 +28,17 @@ Both applications will connect to **one shared database** and call the same `hot
 
 ## Project Goals
 
-The project applies object-oriented programming concepts to a hotel reservation system through a shared Java core and two separate user-facing applications.
+The project applies object-oriented programming concepts to a hotel reservation system through a shared Java core and separate administrator and customer workspaces in one desktop application.
 
 1. **Build the shared core first.** Put the OOP models, repository operations, services, exceptions, database connection configuration, schema, and all business rules in `hotel-core`.
 2. **Build the staff desktop application.** Use Java Swing in `hotel-desktop` for walk-in reservations and the hotel's staff workflows. This is the first application phase.
-3. **Add online reservations last.** Create `hotel-web` in the final phase as a customer-facing Spring Boot and Thymeleaf website. It will depend on `hotel-core`, not duplicate its business rules.
-4. **Share one database.** The desktop and web applications will use the same MariaDB/MySQL database so room information and reservation records remain consistent between them.
-5. **Keep online booking separate from the walk-in workflow.** Online reservations will use `ReservationType = Online` and start with status `Pending`. Receptionists will review them in the desktop application's reservation management screen.
+3. **Add the customer workspace in Swing.** Host customer-facing screens in `hotel-desktop` and call `hotel-core` for shared business rules.
+4. **Share one database.** The staff and customer workspaces use the same MariaDB/MySQL database so room information and reservation records remain consistent.
+5. **Keep online booking separate from the walk-in workflow.** Online reservations use `ReservationType = Online` and start with status `Pending`. Administrators review them in the desktop application's reservation management screen.
 
-Online reservations mean that customers can submit a reservation through the website; they do **not** necessarily mean that the system accepts online card payments. The current project requirements specify cash payment processing at checkout.
+Customer online reservations are a Java Swing workflow, not a website. The customer dashboard, date/time room search, pending online booking, customer-entered partial payments (with 50% suggested), proof submission, booking history, notifications, and PDF receipt screens are implemented in code. Administrators review online bookings and payments in the Reservations workspace; the dashboard's reservation summary is database-driven. Database-backed behavior requires a configured MariaDB/MySQL database with all migrations applied.
+
+Administrators can review archived checkout, cancellation, and dispute events from the Booking history sidebar page. Its date filters cover the past seven calendar days, today, the current month, and the current year. Existing terminal reservations are backfilled by migration 005; because older records do not store status-change times, the migration uses the transaction payment time for checked-out stays when available and otherwise uses reservation creation time.
 
 ## Planned Features
 
@@ -52,19 +53,19 @@ The checklists are intentionally left unchecked. Update them only as features ar
 - [ ] Store the shared database schema in `hotel-core/src/main/resources/db/schema.sql`.
 - [ ] Keep all business rules in this module so neither application implements a separate copy.
 
-### Staff desktop application (`hotel-desktop`) — first phase
+### Staff desktop application (`hotel-desktop`)
 
-- [ ] Provide a staff login screen backed by the users table and hashed passwords.
+- [ ] Provide role-restricted Admin login backed by the users table and hashed passwords.
 - [ ] Add, update, search, and display hotel rooms.
 - [ ] Manage room availability and housekeeping status.
 - [ ] Create and manage **walk-in reservations**.
-- [ ] Display and manage online reservations submitted through the future website.
+- [ ] Display and manage online reservations submitted through the customer workspace.
 - [ ] Check guests in and out.
 - [ ] Calculate bills, process cash payments, calculate change, and generate receipts.
 - [ ] Monitor available and occupied rooms, room types, cleaning needs, maintenance, and out-of-service rooms.
 - [ ] Call the shared business logic in `hotel-core` rather than duplicating it in the desktop UI.
 
-### Customer-facing website (`hotel-web`) — final phase
+### Customer workspace (`hotel-desktop`, Java Swing)
 
 - [ ] Browse rooms and view room details, rates, and capacity.
 - [ ] Search for rooms using check-in and check-out dates and guest requirements.
@@ -72,63 +73,33 @@ The checklists are intentionally left unchecked. Update them only as features ar
 - [ ] Save online reservations with reservation type `Online` and initial status `Pending`.
 - [ ] Display a reservation reference and current booking status after submission.
 - [ ] Allow a guest to view or cancel a reservation only when supported by the final system rules and access checks.
-- [ ] Use the website on mobile and desktop browsers.
+- [ ] Provide a customer dashboard and booking navigation in the shared single-window application.
 - [ ] Use `hotel-core` for availability checks and reservation business rules.
 
-## Website Pages
+## Customer Workspace
 
-The website is planned for the final phase. This section lists **customer-facing pages only**. Staff functions belong in the Java Swing desktop application and must not be exposed as customer website features.
+Customer-facing screens are Java Swing `JPanel` cards hosted by `HotelDesktop`. This section lists planned customer pages; staff operations remain restricted to the administrator workspace.
 
-### Customer-facing pages
+### Customer pages
 
 | Page | Purpose |
 |---|---|
-| **Home** | Introduce the hotel and provide a clear entry point to room search. |
-| **Rooms / Room Listings** | Browse rooms, room types, capacity, descriptions, and nightly rates. |
-| **Room Details** | Show details for a selected room and let the customer continue to date selection. |
-| **Search Availability** | Enter check-in/check-out dates and guest requirements; show rooms available for the full date range. |
-| **Reservation Form** | Collect the guest's name, contact number, email, selected room, and stay dates. |
-| **Reservation Confirmation** | Show the booking reference and current reservation status after a successful submission. |
-| **Find / View Reservation** *(optional)* | Let a guest look up a booking and cancel it if the system's rules permit. Guest information must be protected. |
-
-### Website template and static-resource layout (planned)
-
-When `hotel-web` is created, use Thymeleaf templates for customer pages and shared fragments. Do not create a `staff/` template directory for staff workflows; those screens belong to `hotel-desktop`.
-
-```text
-hotel-web/
-└── src/main/
-    ├── java/com/hotel/web/
-    └── resources/
-        ├── templates/
-        │   ├── customer/
-        │   │   ├── home.html
-        │   │   ├── rooms.html
-        │   │   ├── room-details.html
-        │   │   ├── availability.html
-        │   │   ├── reservation-form.html
-        │   │   ├── reservation-confirmation.html
-        │   │   └── find-reservation.html
-        │   └── fragments/
-        │       ├── header.html
-        │       ├── footer.html
-        │       └── navigation.html
-        └── static/
-            ├── css/
-            ├── js/
-            └── images/
-```
-
-This is a proposed layout for the future web module, not a claim that the module or its templates already exist. Controllers, templates, and authorization rules will be added when online reservation development begins.
+| **Dashboard** | Show the supplied hotel and amenity images and provide an entry point to room search. |
+| **Book a Room** | Collect guest details, date/time spinners, room type, and guest count; show rooms available for the full date range. |
+| **Payment** | Enter a payment amount (the suggested initial payment is 50% of the booking total) or submit part/all of the remaining balance with a method, reference, and bounded proof upload. Payments remain Partially Paid until staff verifies the full amount. |
+| **My Bookings** | Show the signed-in customer's reservations and allow pending-only changes/cancellation and eligible balance payments. |
+| **Notifications** | Show customer-scoped booking notifications and unread counts. |
+| **Receipt** | Show a reservation/payment summary and download it as a PDF. |
 
 ## Desktop Screens
 
-The Java Swing staff application is developed in `hotel-desktop`. It has Welcome and Login top-level cards and a shared workspace shell with Dashboard, Room management, Room monitoring, Housekeeping, Walk-in reservation, Online reservations, Check in, and Check out. Staff login authenticates receptionist accounts against the shared database using salted password hashes. Room Management, Housekeeping, Monitoring, walk-in, check-in, and check-out use the shared core/database. Online reservations is a placeholder for final implementation; Dashboard room counts use a live snapshot while its reservation summary data remains illustrative.
+The Java Swing application is developed in `hotel-desktop`. It has Welcome and Login top-level cards, a role-restricted administrator workspace, and a separate customer workspace hosted by the same `JFrame`. Admin login uses salted password hashes; customer sign-up and booking/payment screens are implemented. The administrator Reservations workspace contains Walk-in, Online review, and Calendar tabs. Dashboard room counts and recent reservation summaries are loaded from the database.
 
 | Screen | Purpose |
 |---|---|
-| **Login** | Authenticate hotel staff using the users table and hashed passwords. |
-| **Dashboard** | Provide a staff overview and navigation to operational modules. |
+| **Login / Sign up** | Authenticate Admin and Customer accounts and create customer accounts using the users table and hashed passwords. |
+| **Customer workspace** | Give customers a separate dashboard, booking, payment, booking-history, notification, and receipt navigation that cannot open staff screens. |
+| **Dashboard** | Provide an administrator overview and navigation to operational modules. |
 | **Room Management** | Add, edit, search, and view room records. |
 | **Reservation Management** | Create walk-in reservations and review/manage online reservations, including their permitted status changes. |
 | **Check-in / Check-out** | Process arrivals and departures and update reservation and room status. |
@@ -138,7 +109,7 @@ The Java Swing staff application is developed in `hotel-desktop`. It has Welcome
 
 The desktop application will call `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
 
-The shared workspace shell switches among eight mounted workspace cards. Sidebar routes are wired, and dashboard quick actions for room management, walk-in bookings, check-in, and check-out navigate to their associated screens. The Online reservations card is a placeholder marked for final implementation; the customer-facing website and online submission flow are not available yet. Implemented reservation operations persist through `hotel-core`; check-out stores payment details and a receipt reference, then marks the room Dirty for housekeeping. Dashboard reservation summary rows remain a static visual preview. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for workflow rules and source-document alignment notes.
+The shared administrator shell switches among mounted workspace cards. Customer accounts route to a separate customer-only navigation shell; administrator navigation checks the authenticated role. Welcome, login, sign-up, and both workspaces are panels in the same `JFrame`. Customer reservation persistence, room-row locking, proof-file storage, customer booking history, and customer notifications are implemented through `hotel-core`. The Reservations workspace includes walk-in, online review/payment verification, and calendar tabs. Admin dashboard reservation summaries are database-driven. Admin checkout stores walk-in payment details and marks the room Dirty; online checkout requires fully verified online payments. Customer and walk-in reservation receipts can be downloaded as PDFs. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for workflow rules and source-document alignment notes.
 
 ## Technology Stack
 
@@ -149,11 +120,8 @@ The shared workspace shell switches among eight mounted workspace cards. Sidebar
 | Build tool | Apache Maven multi-module project | Builds modules and manages dependencies |
 | Parent project | Root `pom.xml`, group ID `com.hotel` | Defines the project and its modules |
 | Shared module | `hotel-core` | Models, repositories, services, exceptions, configuration, schema, and business rules |
-| Desktop UI | Java Swing | Staff workflows, beginning with walk-in reservations |
-| Web framework *(final phase)* | Spring Boot, in `hotel-web` only | Customer-facing online reservation application |
-| Web page rendering *(final phase)* | Thymeleaf, in `hotel-web` only | Render customer-facing HTML pages |
-| Web frontend *(final phase)* | HTML, CSS, JavaScript, Bootstrap | Responsive customer website |
-| Database access | JDBC through shared repository/configuration code | Database operations used by both applications |
+| Desktop UI | Java Swing | Administrator workflows and customer screens |
+| Database access | JDBC through shared repository/configuration code | Database operations used by both workspaces |
 | Database | MariaDB or MySQL | Shared persistence for rooms, guests, reservations, users, and transactions |
 | Local database environment | XAMPP, if using its bundled MariaDB/MySQL service | Local development database |
 | Version control | Git and GitHub | Branches, collaboration, reviews, and project history |
@@ -162,15 +130,14 @@ The shared workspace shell switches among eight mounted workspace cards. Sidebar
 
 ## Architecture
 
-The project is one Maven multi-module build with three modules. The first two currently exist; `hotel-web` is planned for the final phase.
+The project is a Maven multi-module build with two modules: `hotel-core` and `hotel-desktop`.
 
 - **`hotel-core`** contains the shared models, enums, repositories, services, exceptions, database configuration, and SQL schema.
-- **`hotel-desktop`** contains the Java Swing UI used by the receptionist and staff. It depends on `hotel-core`.
-- **`hotel-web`** will contain the Spring Boot and Thymeleaf customer website. It will depend on `hotel-core` and will be added last.
+- **`hotel-desktop`** contains the Java Swing UI for administrators and customers. It depends on `hotel-core`.
 
-**All business rules live only in `hotel-core`.** The desktop application and the future website call the shared core services rather than implementing their own versions of availability, guest classification, reservation processing, or billing rules.
+**All business rules live only in `hotel-core`.** Both workspaces call shared core services rather than implementing their own versions of availability, guest classification, reservation processing, or billing rules.
 
-Both applications use one MariaDB/MySQL database. Online reservations created by `hotel-web` will be saved with reservation type `Online` and status `Pending`, then retrieved and managed by staff in `hotel-desktop`.
+The administrator and customer workspaces use one MariaDB/MySQL database. Online reservations submitted through the customer workspace are saved with reservation type `Online` and status `Pending`, then reviewed by administrators in `hotel-desktop`.
 
 ### Suggested project structure
 
@@ -198,26 +165,24 @@ hotel-reservation/
 │       │   └── resources/db/schema.sql      # Shared database schema
 │       └── test/java/com/hotel/core/        # Core tests
 │
-├── hotel-desktop/                           # Staff/receptionist Java Swing app
+├── hotel-desktop/                           # Admin and customer Java Swing app
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/hotel/desktop/
 │       │   ├── HotelDesktop.java            # Single JFrame hosting the desktop screens
-│       │   ├── auth/                        # WelcomeScreen and LoginScreen
+│       │   ├── auth/                        # WelcomeScreen, LoginScreen, customer sign up
+│       │   ├── customer/                    # Customer workspace panels
 │       │   ├── dashboard/                   # DashboardScreen and shared UI widgets
 │       │   └── nav/                         # NavItem, SidebarPanel, WorkspaceShell
 │       └── test/java/                       # Desktop tests, as added
 │
-└── hotel-web/                               # Future customer website; not created yet
-    ├── pom.xml                              # To be added in the final phase
-    └── src/                                 # Spring Boot + Thymeleaf customer website
 ```
 
-The tree shows the planned module organization. The specific files and panels can be added as implementation progresses, but the module boundaries should remain: shared code and business rules in `hotel-core`, staff UI in `hotel-desktop`, and customer-facing online booking in `hotel-web`.
+The tree shows the planned module organization. The specific files and panels can be added as implementation progresses, but the module boundaries should remain: shared code and business rules in `hotel-core`, and both administrator and customer Swing UI in `hotel-desktop`.
 
 ## Core OOP Design
 
-The shared domain classes and business operations belong in **`hotel-core`**, under `com.hotel.core`. The desktop UI and future website should call the core services and repositories instead of duplicating these classes or rules.
+The shared domain classes and business operations belong in **`hotel-core`**, under `com.hotel.core`. Both desktop workspaces should call the core services and repositories instead of duplicating these classes or rules.
 
 - **`Room`** — room number, floor, type, capacity, description, daily rate, availability, and housekeeping status.
 - **`Guest`** — an abstract class containing shared guest information and the contract for guest-specific billing rules.
@@ -276,9 +241,8 @@ Install or prepare these tools before running the project:
 - Git
 - Apache Maven
 - XAMPP or another local MariaDB/MySQL server
-- A modern browser for the website phase
 
-FlatLaf and a Swing-compatible date-picker component are optional desktop UI enhancements. Cygwin is not a required project dependency. The future `hotel-web` module will use Spring Boot and Thymeleaf; these web dependencies do not belong in `hotel-core` or `hotel-desktop` unless the project configuration specifically requires otherwise.
+FlatLaf and a Swing-compatible date-entry component are optional desktop UI enhancements. Cygwin is not a required project dependency. Customer-facing screens are part of the Java Swing desktop module; do not add web frontend dependencies.
 
 ## Local Setup
 
@@ -309,11 +273,15 @@ The shared schema script is located at:
 hotel-core/src/main/resources/db/schema.sql
 ```
 
-Apply that schema to the local database. The tables must exist before running database-backed workflows. Keep the desktop and future web application pointed at the **same database** so that they can share rooms, guests, users, reservations, and transactions.
+Apply that schema to the local database. The tables must exist before running database-backed workflows.
 
 For a database initialized from an older version of the schema, apply `hotel-core/src/main/resources/db/migrations/001_add_users_is_enabled.sql` once (it safely skips the change when the column already exists). Do not drop or recreate the database to apply this migration.
 
 For an existing database that already has the guest, reservation, and transaction tables, also apply `hotel-core/src/main/resources/db/migrations/002_reservation_workflows.sql` once after the users migration. It adds reservation rate/guest-count snapshots and transaction receipt references required by the desktop workflows. The migration is not idempotent; do not run it more than once. New databases get these fields from `schema.sql` and do not need this migration.
+
+Apply `hotel-core/src/main/resources/db/migrations/003_customer_online_booking.sql` once after migrations 001 and 002. It adds customer account fields, online booking/payment/notification tables, and room dirty-time data. Existing `Receptionist` account roles are migrated to `Admin`. Then apply `hotel-core/src/main/resources/db/migrations/004_customer_discount_id_proof.sql` once to add the customer discount-ID proof path. Migrations 003 and 004 are not idempotent; back up the database and do not run either more than once. New databases already have these fields in `schema.sql` and do not need these migrations.
+
+Apply `hotel-core/src/main/resources/db/migrations/005_booking_history_ledger.sql` after migration 004. It creates the archival event ledger and imports existing Checked-Out and Cancelled reservations. New databases get the table from `schema.sql` and do not need migration 005.
 
 For local development, use a dedicated database user rather than the database administrator/root account where possible.
 
@@ -323,7 +291,11 @@ Database connection configuration belongs in `hotel-core`, using the shared conn
 
 Copy `hotel-core/src/main/resources/db.properties.example` to the ignored local file `hotel-core/src/main/resources/db.properties` and replace its database username/password placeholders. Do not commit the local file or credentials.
 
-Both `hotel-desktop` and, later, `hotel-web` must use the same database connection settings and database schema. Do not create a separate application database for online reservations.
+The administrator and customer workspaces use the same database connection settings and database schema. Do not create a separate application database for online reservations.
+
+Payment proof files are stored outside the source tree. By default the application uses `.hotel-reservation/payment-proofs` under the current user's home directory. Configure another location with the JVM property `-Dhotel.payment.proof.directory=<path>` or the `HOTEL_PAYMENT_PROOF_DIRECTORY` environment variable. Payment proofs and discount-ID proofs accept any file type up to 5 MB; they are stored under generated filenames and the database stores the saved paths. Discounted guests must still submit an ID proof, and its discount remains unverified until staff review. The administrator screen previews supported payment-proof image files in-app; other file types can be submitted but do not have an in-app image preview.
+
+Discount-ID uploads use the same configured proof-storage directory and the same 5 MB size limit; staff must verify the ID before the discounted classification is approved.
 
 ### 4. Build the multi-module project
 
@@ -335,7 +307,7 @@ mvn clean install
 
 This builds and installs the modules in the reactor according to the parent Maven configuration. Fix any build errors before moving on.
 
-### 5. Create the initial receptionist account
+### 5. Create the initial administrator account
 
 After applying the schema/migration and configuring `db.properties`, run the account setup utility in a terminal with password input enabled:
 
@@ -343,15 +315,13 @@ After applying the schema/migration and configuring `db.properties`, run the acc
 mvn -pl hotel-core org.codehaus.mojo:exec-maven-plugin:3.5.0:java -Dexec.mainClass=com.hotel.core.setup.StaffAccountSetup
 ```
 
-Enter a receptionist username, display name, and a password between 10 and 128 characters. Password input is hidden; the utility stores a salted PBKDF2-HMAC-SHA256 hash and creates an enabled account with the `Receptionist` role. It does not create an administrator or provide a public registration screen. The existing users table enforces username uniqueness.
+Enter an administrator username, display name, and a password between 10 and 128 characters. Password input is hidden; the utility stores a salted PBKDF2-HMAC-SHA256 hash and creates an enabled account with the `Admin` role. Customer sign-up is available from the login screen and creates only `Customer` accounts.
 
 If an older database already contains the legacy `staff` placeholder row, it is not a valid account and is not overwritten; choose a different unique username. The migration and setup utility leave existing user rows intact.
 
 ### 6. Run the desktop application
 
-In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's Welcome screen. Start opens the Login screen; valid receptionist credentials are checked against the shared database before the Dashboard opens. Walk-in bookings are created as Confirmed reservations for today. Pending online bookings can be confirmed or declined. Check-in updates both the reservation and room; checkout accepts cash, persists the bill and receipt, changes the reservation to Checked-Out, and marks the room Dirty. Logout clears the in-memory staff profile and returns to Welcome. A valid database configuration and the required schema/migrations are necessary for these workflows.
-
-The `hotel-web` module has **not been created yet**. The customer website setup and web run instructions will be added when that final phase begins.
+In NetBeans, open the parent Maven project and run the `HotelDesktop.java` main class from the `hotel-desktop` module. Its entry point opens the desktop application's Welcome screen. Login routes an Admin to the staff workspace and a Customer to a separate customer-only workspace. Walk-in bookings are created as Confirmed reservations for today and have a PDF receipt download. Pending online bookings can be approved or rejected, payment and discount-ID proofs can be reviewed, and the administrator calendar and dashboard read current reservation data. Walk-in checkout collects cash; online checkout requires fully paid and verified online payments. Normal and forced check-out mark the room Dirty, and a background task changes rooms back to Clean after one hour. A valid database configuration and the required schema/migrations are necessary for these workflows.
 
 ## Run and Test
 
@@ -381,7 +351,7 @@ Build only the core module and its dependencies (where applicable):
 mvn -pl hotel-core -am package
 ```
 
-Tests should live with the module they test. The shared core tests are under `hotel-core/src/test/java/com/hotel/core/`. Tests for desktop and, later, web behavior can live under the respective module's `src/test/java/` tree. Run the parent build before merging changes to confirm that the modules work together.
+Tests should live with the module they test. The shared core tests are under `hotel-core/src/test/java/com/hotel/core/`. Tests for desktop behavior can live under `hotel-desktop/src/test/java/`. Run the parent build before merging changes to confirm that the modules work together.
 
 Before marking a feature complete, test at least:
 
@@ -393,7 +363,7 @@ Before marking a feature complete, test at least:
 - Regular and discounted guest billing.
 - Insufficient cash payment and change calculation.
 - Room status transitions during check-in, checkout, and housekeeping.
-- Access to staff-only functions by an unauthenticated or unauthorized user; staff functions belong to the desktop app and must not be exposed to customers through the website.
+- Access to staff-only functions by an unauthenticated or unauthorized user; customers must never be routed to administrator screens.
 
 ## GitHub Team Workflow
 
@@ -417,17 +387,17 @@ The `.gitignore` excludes generated Maven `target/` directories and NetBeans pri
 
 ## Security Notes
 
-- Staff login belongs to the desktop application and must use the users table with hashed passwords; never store plaintext passwords.
-- The future customer website must not expose staff functions, staff-only screens, or administrative operations.
-- The website must not reveal other guests' personal information or reservations. Protect all reservation lookup and cancellation flows with appropriate checks.
+- Admin login and customer sign-up belong to the desktop application and must use the users table with hashed passwords; never store plaintext passwords.
+- Customer workspace navigation must not expose staff functions, staff-only screens, or administrative operations.
+- Customer screens must not reveal another guest's personal information or reservations. Protect all reservation lookup and cancellation flows with appropriate checks.
 - Use prepared statements or parameterized database operations to reduce SQL injection risk.
 - Validate all inputs in the shared core/business layer, including dates, prices, IDs, and reservation status changes. Do not trust validation performed only by a desktop form or web browser.
 - Keep credentials out of source control. If a real secret is accidentally committed, rotate it; deleting the file in a later commit does not erase it from Git history.
-- Use appropriate access controls for database accounts and HTTPS for the deployed website.
+- Use appropriate access controls for database accounts.
 - Do not store raw payment-card details. The current scope calls for cash transactions at checkout.
 
-Because both applications can access the same database, use appropriate database transactions, locking, or constraints around reservation creation and availability updates. A check performed only in the user interface or by a non-atomic service check may still allow two requests to book the same room for overlapping dates.
+Because both workspaces use the same database, use appropriate database transactions, locking, or constraints around reservation creation and availability updates. A check performed only in the user interface or by a non-atomic service check may still allow two requests to book the same room for overlapping dates.
 
 ## Project Documentation
 
-The implementation should stay consistent with the team's project guide and flowcharts, archived with the dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/). See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for the reviewed requirements and decisions. The staff desktop application is the first implementation phase, focused on walk-in reservations and hotel operations. The customer-facing website is the final phase and will use the same `hotel-core` services and database for online reservations. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.
+The implementation should stay consistent with the team's project guide and flowcharts, archived with the dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/). See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for the reviewed requirements and decisions. The Java Swing application contains separate administrator and customer workspaces and uses `hotel-core` for shared business rules. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.

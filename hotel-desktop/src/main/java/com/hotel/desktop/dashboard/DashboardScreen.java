@@ -1,8 +1,13 @@
 package com.hotel.desktop.dashboard;
 
 import com.hotel.core.model.RoomMonitoringSnapshot;
+import com.hotel.core.model.AdminDashboardSnapshot;
+import com.hotel.core.model.AdminReservationDetails;
+import com.hotel.core.model.AuthenticatedUser;
+import com.hotel.core.model.CustomerBooking;
 import com.hotel.core.model.enums.RoomMonitoringStatus;
 import com.hotel.core.model.enums.RoomType;
+import com.hotel.core.service.ReservationService;
 import com.hotel.core.service.RoomService;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringDataSource;
 
@@ -26,6 +31,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.IntConsumer;
+import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonModel;
 import javax.swing.JButton;
@@ -33,6 +40,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JTable;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.ListSelectionModel;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -45,7 +54,7 @@ import javax.swing.table.TableColumnModel;
  *
  * Add it to a host frame like the other screens:
  * {@code new DashboardScreenRef(this::showWelcome)}.
- * Room counts use the shared database snapshot; reservations remain static preview data.
+ * Room and reservation summaries are loaded from shared core services.
  */
 public class DashboardScreen extends JPanel {
 
@@ -71,6 +80,10 @@ public class DashboardScreen extends JPanel {
     private final Runnable onNewWalkIn;
     private final Runnable onCheckIn;
     private final Runnable onCheckOut;
+    private final ReservationService reservationService;
+    private final Supplier<AuthenticatedUser> currentAdmin;
+    private final IntConsumer pendingOnlineCountListener;
+    private SwingWorker<AdminDashboardSnapshot, Void> dashboardWorker;
 
     public DashboardScreen() {
         this(() -> { }, () -> { }, () -> { }, new RoomMonitoringDataSource(new RoomService()));
@@ -94,11 +107,30 @@ public class DashboardScreen extends JPanel {
     public DashboardScreen(
             Runnable onManageRooms, Runnable onNewWalkIn, Runnable onCheckIn, Runnable onCheckOut,
             RoomMonitoringDataSource dataSource) {
+        this(onManageRooms, onNewWalkIn, onCheckIn, onCheckOut, dataSource, null, null);
+    }
+
+    public DashboardScreen(
+            Runnable onManageRooms, Runnable onNewWalkIn, Runnable onCheckIn, Runnable onCheckOut,
+            RoomMonitoringDataSource dataSource, ReservationService reservationService,
+            Supplier<AuthenticatedUser> currentAdmin) {
+        this(onManageRooms, onNewWalkIn, onCheckIn, onCheckOut,
+                dataSource, reservationService, currentAdmin, count -> { });
+    }
+
+    public DashboardScreen(
+            Runnable onManageRooms, Runnable onNewWalkIn, Runnable onCheckIn, Runnable onCheckOut,
+            RoomMonitoringDataSource dataSource, ReservationService reservationService,
+            Supplier<AuthenticatedUser> currentAdmin, IntConsumer pendingOnlineCountListener) {
         this.onManageRooms = Objects.requireNonNull(onManageRooms, "onManageRooms");
         this.onNewWalkIn = Objects.requireNonNull(onNewWalkIn, "onNewWalkIn");
         this.onCheckIn = Objects.requireNonNull(onCheckIn, "onCheckIn");
         this.onCheckOut = Objects.requireNonNull(onCheckOut, "onCheckOut");
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+        this.reservationService = reservationService;
+        this.currentAdmin = currentAdmin;
+        this.pendingOnlineCountListener = Objects.requireNonNull(
+                pendingOnlineCountListener, "Pending online count listener is required");
         initComponents();
         lblDate.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.ENGLISH)));
         lblCleaningTitle.setText("Dirty");
@@ -108,11 +140,83 @@ public class DashboardScreen extends JPanel {
         btnCheckInAction.addActionListener(event -> this.onCheckIn.run());
         btnCheckOutAction.addActionListener(event -> this.onCheckOut.run());
         dataSource.addListener(this::displayRoomCounts);
+        Timer refreshTimer = new Timer(30_000, event -> {
+            if (isShowing()) {
+                refreshRoomCounts();
+            }
+        });
+        refreshTimer.start();
     }
 
     /** Requests a fresh database snapshot for the shared room summaries. */
     public void refreshRoomCounts() {
         dataSource.refresh();
+        refreshDashboardSnapshot();
+    }
+
+    private void refreshDashboardSnapshot() {
+        if (reservationService == null || currentAdmin == null) {
+            return;
+        }
+        if (dashboardWorker != null) {
+            dashboardWorker.cancel(true);
+        }
+        dashboardWorker = new SwingWorker<>() {
+            @Override
+            protected AdminDashboardSnapshot doInBackground() throws Exception {
+                return reservationService.getAdminDashboardSnapshot(currentAdmin.get(), LocalDate.now());
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    displayDashboardSnapshot(get());
+                } catch (java.util.concurrent.CancellationException ignored) {
+                    return;
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    displayDashboardError("Dashboard refresh was interrupted.");
+                } catch (java.util.concurrent.ExecutionException exception) {
+                    Throwable cause = exception.getCause();
+                    displayDashboardError(cause == null ? exception.getMessage() : cause.getMessage());
+                }
+            }
+        };
+        dashboardWorker.execute();
+    }
+
+    private void displayDashboardSnapshot(AdminDashboardSnapshot snapshot) {
+        javax.swing.table.DefaultTableModel model =
+                (javax.swing.table.DefaultTableModel) tblReservations.getModel();
+        model.setRowCount(0);
+        for (AdminReservationDetails details : snapshot.recentReservations()) {
+            CustomerBooking booking = details.booking();
+            var reservation = booking.reservation();
+            model.addRow(new Object[]{
+                reservation.reference(),
+                reservation.guest().fullName(),
+                reservation.roomNumber(),
+                reservation.type().getDatabaseValue(),
+                reservation.status().getDatabaseValue(),
+                booking.paymentStatus().getDatabaseValue()
+            });
+        }
+        lblArrivals.setText("Today: " + snapshot.todaysArrivals() + " arrivals · "
+                + snapshot.todaysDepartures() + " departures · "
+                + snapshot.pendingOnlineReservations() + " pending online");
+        lblArrivals.setToolTipText(null);
+        pendingOnlineCountListener.accept(snapshot.pendingOnlineReservations());
+    }
+
+    private void displayDashboardError(String message) {
+        javax.swing.table.DefaultTableModel model =
+                (javax.swing.table.DefaultTableModel) tblReservations.getModel();
+        model.setRowCount(0);
+        String detail = message == null || message.isBlank()
+                ? "Dashboard data could not be loaded." : message;
+        lblArrivals.setText("Unable to load reservation summary");
+        lblArrivals.setToolTipText(detail);
+        lblReservationTitle.setToolTipText(detail);
     }
 
     private void displayRoomCounts(RoomMonitoringDataSource.State state) {
@@ -379,12 +483,12 @@ public class DashboardScreen extends JPanel {
 
         lblReservationTitle.setFont(new java.awt.Font("Georgia", 1, 20)); // NOI18N
         lblReservationTitle.setForeground(new java.awt.Color(20, 18, 26));
-        lblReservationTitle.setText("Today's reservations");
+        lblReservationTitle.setText("Recent reservations");
         pnlReservationsHeader.add(lblReservationTitle, java.awt.BorderLayout.WEST);
 
         lblArrivals.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         lblArrivals.setForeground(new java.awt.Color(105, 91, 33));
-        lblArrivals.setText("5 arrivals");
+        lblArrivals.setText("Loading reservation summary…");
         pnlReservationsHeader.add(lblArrivals, java.awt.BorderLayout.EAST);
 
         pnlReservations.add(pnlReservationsHeader, java.awt.BorderLayout.NORTH);
@@ -393,19 +497,13 @@ public class DashboardScreen extends JPanel {
 
         tblReservations.setFont(new java.awt.Font("Segoe UI", 0, 15)); // NOI18N
         tblReservations.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {"RES-001", "Juan Dela Cruz", "203", "Walk-in", "Confirmed"},
-                {"RES-002", "Maria Santos", "105", "Online", "Pending"},
-                {"RES-003", "Pedro Reyes", "301", "Walk-in", "Checked-In"},
-                {"RES-004", "Ana Lim", "208", "Online", "Confirmed"},
-                {"RES-005", "Carlo Mendoza", "110", "Walk-in", "Confirmed"}
-            },
+            new Object [][] {},
             new String [] {
-                "Reference", "Guest", "Room", "Type", "Status"
+                "Reference", "Guest", "Room", "Type", "Reservation", "Payment"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false
+                false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -622,15 +720,19 @@ public class DashboardScreen extends JPanel {
         tblReservations.setAutoResizeMode(JTable.AUTO_RESIZE_LAST_COLUMN);
 
         TableColumnModel columns = tblReservations.getColumnModel();
-        int[] widths = {88, 180, 60, 98, 126};
+        // Keep the status pill clear of Payment, and give the status column
+        // room for its full width without making the table scroll sideways.
+        int[] widths = {84, 132, 50, 70, 118, 94};
         for (int i = 0; i < widths.length; i++) {
             columns.getColumn(i).setPreferredWidth(widths[i]);
         }
+        columns.getColumn(4).setMinWidth(116);
         columns.getColumn(0).setCellRenderer(new TextCellRenderer(true));
         columns.getColumn(1).setCellRenderer(new TextCellRenderer(false));
         columns.getColumn(2).setCellRenderer(new TextCellRenderer(true));
         columns.getColumn(3).setCellRenderer(new TextCellRenderer(false));
         columns.getColumn(4).setCellRenderer(new StatusPillRenderer());
+        columns.getColumn(5).setCellRenderer(new TextCellRenderer(false));
 
         JTableHeader header = tblReservations.getTableHeader();
         header.setReorderingAllowed(false);
@@ -659,7 +761,7 @@ public class DashboardScreen extends JPanel {
 
     /** Sidebar icons, drawn as vectors so no image files are needed. */
     public enum Glyph {
-        HOME, DOOR, GRID, SPARKLE, PERSON_PLUS, GLOBE, CHECK_IN, CHECK_OUT, POWER, PLUS
+        HOME, DOOR, GRID, SPARKLE, PERSON_PLUS, GLOBE, CHECK_IN, CHECK_OUT, HISTORY, POWER, PLUS
     }
 
     private static final class Icons {
@@ -758,6 +860,11 @@ public class DashboardScreen extends JPanel {
                     head.lineTo(19.5f, 11);
                     head.lineTo(15.5f, 15);
                     g.draw(head);
+                }
+                case HISTORY -> {
+                    g.draw(new Ellipse2D.Float(3, 3, 16, 16));
+                    g.draw(new Line2D.Float(11, 6, 11, 11));
+                    g.draw(new Line2D.Float(11, 11, 15, 13));
                 }
                 case POWER -> {
                     g.draw(new Arc2D.Float(3.5f, 4.5f, 15, 15, 125, 290, Arc2D.OPEN));

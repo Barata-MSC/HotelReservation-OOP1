@@ -1,14 +1,20 @@
 package com.hotel.desktop;
 
-import com.hotel.core.model.StaffUser;
+import com.hotel.core.model.AuthenticatedUser;
+import com.hotel.core.model.UserRole;
 import com.hotel.core.service.AuthenticationService;
+import com.hotel.core.service.CustomerReservationService;
 import com.hotel.core.service.ReservationService;
 import com.hotel.core.service.RoomService;
+import com.hotel.core.service.RoomStatusResetScheduler;
 import com.hotel.desktop.auth.LoginScreen;
+import com.hotel.desktop.auth.CustomerSignUpPanel;
 import com.hotel.desktop.auth.WelcomeScreen;
 import com.hotel.desktop.checkIn.CheckInScreen;
+import com.hotel.desktop.checkIn.GuestStayManagementScreen;
 import com.hotel.desktop.checkOut.CheckOutScreen;
 import com.hotel.desktop.dashboard.DashboardScreen;
+import com.hotel.desktop.customer.CustomerWorkspacePanel;
 import com.hotel.desktop.houseKeepingStatus.HousekeepingScreen;
 import com.hotel.desktop.nav.NavItem;
 import com.hotel.desktop.nav.WorkspaceShell;
@@ -16,6 +22,9 @@ import com.hotel.desktop.roomManagement.RoomManagementScreen;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringDataSource;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringScreen;
 import com.hotel.desktop.reservation.OnlineReservationScreen;
+import com.hotel.desktop.reservation.ReservationCalendarScreen;
+import com.hotel.desktop.reservation.ReservationManagementScreen;
+import com.hotel.desktop.reservation.BookingHistoryScreen;
 import com.hotel.desktop.reservation.WalkInReservationScreen;
 
 import java.awt.CardLayout;
@@ -30,22 +39,30 @@ public class HotelDesktop extends JFrame {
     private static final long serialVersionUID = 1L;
     private final CardLayout cardLayout;
     private final LoginScreen loginScreen;
+    private final CustomerSignUpPanel customerSignUpPanel;
     private final WelcomeScreen welcomeScreen;
     private final DashboardScreen dashboardScreen;
     private final WalkInReservationScreen walkInReservationScreen;
     private final OnlineReservationScreen onlineReservationScreen;
+    private final ReservationManagementScreen reservationManagementScreen;
+    private final BookingHistoryScreen bookingHistoryScreen;
     private final CheckInScreen checkInScreen;
     private final CheckOutScreen checkOutScreen;
+    private final GuestStayManagementScreen guestStayManagementScreen;
     private final HousekeepingScreen housekeepingScreen;
     private final RoomMonitoringScreen roomMonitoringScreen;
     private final RoomService roomService = new RoomService();
+    private final RoomStatusResetScheduler roomStatusResetScheduler =
+            new RoomStatusResetScheduler(roomService, this::refreshRoomStatusViews);
     private final AuthenticationService authenticationService = new AuthenticationService();
     private final ReservationService reservationService = new ReservationService();
+    private final CustomerReservationService customerReservationService = new CustomerReservationService();
     private final RoomMonitoringDataSource roomMonitoringDataSource =
             new RoomMonitoringDataSource(roomService);
     private final RoomManagementScreen roomManagementScreen;
     private final WorkspaceShell workspaceShell;
-    private StaffUser authenticatedStaff;
+    private final CustomerWorkspacePanel customerWorkspacePanel;
+    private AuthenticatedUser authenticatedUser;
 
     public HotelDesktop() {
         initComponents();
@@ -54,21 +71,35 @@ public class HotelDesktop extends JFrame {
         setLocationRelativeTo(null);
 
         cardLayout = (CardLayout) screenDeck.getLayout();
-        loginScreen = new LoginScreen(authenticationService, this::onAuthenticated);
-        roomManagementScreen = new RoomManagementScreen(roomService, roomMonitoringDataSource::refresh);
+        loginScreen = new LoginScreen(authenticationService, this::onAuthenticated, this::showCustomerSignUp);
+        customerSignUpPanel = new CustomerSignUpPanel(
+                authenticationService, this::onAuthenticated, this::showLogin);
+        customerWorkspacePanel = new CustomerWorkspacePanel(customerReservationService, this::logout);
+        roomManagementScreen = new RoomManagementScreen(roomService, this::refreshReservationViews);
+        walkInReservationScreen = new WalkInReservationScreen(
+                reservationService, () -> authenticatedUser, this::refreshReservationViews);
+        onlineReservationScreen = new OnlineReservationScreen(
+                reservationService, roomService, () -> authenticatedUser, this::refreshReservationViews);
+        ReservationCalendarScreen reservationCalendarScreen =
+                new ReservationCalendarScreen(reservationService, () -> authenticatedUser);
+        reservationManagementScreen = new ReservationManagementScreen(
+                walkInReservationScreen, onlineReservationScreen, reservationCalendarScreen);
+        bookingHistoryScreen = new BookingHistoryScreen(reservationService, () -> authenticatedUser);
         dashboardScreen = new DashboardScreen(
                 () -> showWorkspace(NavItem.ROOM_MANAGEMENT),
-                () -> showWorkspace(NavItem.WALK_IN),
-                () -> showWorkspace(NavItem.CHECK_IN),
-                () -> showWorkspace(NavItem.CHECK_OUT),
-                roomMonitoringDataSource);
-        walkInReservationScreen = new WalkInReservationScreen(
-                reservationService, this::refreshReservationViews);
-        onlineReservationScreen = new OnlineReservationScreen();
-        checkInScreen = new CheckInScreen(reservationService, this::refreshReservationViews);
-        checkOutScreen = new CheckOutScreen(reservationService, this::refreshReservationViews);
-        roomMonitoringScreen = new RoomMonitoringScreen(roomMonitoringDataSource);
-        housekeepingScreen = new HousekeepingScreen(roomService, roomMonitoringDataSource::refresh);
+                this::openWalkInReservations,
+                this::openCheckIn,
+                this::openCheckOut,
+                roomMonitoringDataSource, reservationService, () -> authenticatedUser,
+                this::updatePendingReservationBadge);
+        checkInScreen = new CheckInScreen(
+                reservationService, () -> authenticatedUser, this::refreshReservationViews);
+        checkOutScreen = new CheckOutScreen(
+                reservationService, () -> authenticatedUser, this::refreshReservationViews);
+        guestStayManagementScreen = new GuestStayManagementScreen(checkInScreen, checkOutScreen);
+        roomMonitoringScreen = new RoomMonitoringScreen(roomMonitoringDataSource, roomService);
+        housekeepingScreen = new HousekeepingScreen(
+                roomService, reservationService, () -> authenticatedUser, this::refreshReservationViews);
         welcomeScreen = new WelcomeScreen(this::showLogin);
 
         workspaceShell = new WorkspaceShell();
@@ -76,15 +107,15 @@ public class HotelDesktop extends JFrame {
         workspaceShell.addScreen(NavItem.ROOM_MANAGEMENT, roomManagementScreen);
         workspaceShell.addScreen(NavItem.ROOM_MONITORING, roomMonitoringScreen);
         workspaceShell.addScreen(NavItem.HOUSEKEEPING, housekeepingScreen);
-        workspaceShell.addScreen(NavItem.WALK_IN, walkInReservationScreen);
-        workspaceShell.addScreen(NavItem.ONLINE_RESERVATIONS, onlineReservationScreen);
-        workspaceShell.addScreen(NavItem.CHECK_IN, checkInScreen);
-        workspaceShell.addScreen(NavItem.CHECK_OUT, checkOutScreen);
+        workspaceShell.addScreen(NavItem.RESERVATIONS, reservationManagementScreen);
+        workspaceShell.addScreen(NavItem.BOOKING_HISTORY, bookingHistoryScreen);
+        workspaceShell.addScreen(NavItem.GUEST_STAYS, guestStayManagementScreen);
         EnumSet<NavItem> availableScreens = EnumSet.of(
                 NavItem.DASHBOARD, NavItem.ROOM_MANAGEMENT,
                 NavItem.ROOM_MONITORING, NavItem.HOUSEKEEPING,
-                NavItem.WALK_IN, NavItem.ONLINE_RESERVATIONS,
-                NavItem.CHECK_IN, NavItem.CHECK_OUT);
+                NavItem.RESERVATIONS,
+                NavItem.BOOKING_HISTORY,
+                NavItem.GUEST_STAYS);
         workspaceShell.getSidebar().setOnNavigate(item -> {
             if (availableScreens.contains(item)) {
                 showWorkspace(item);
@@ -94,9 +125,50 @@ public class HotelDesktop extends JFrame {
 
         screenDeck.add(welcomeScreen, "welcome");
         screenDeck.add(loginScreen, "login");
+        screenDeck.add(customerSignUpPanel, "signup");
         screenDeck.add(workspaceShell, "shell");
+        screenDeck.add(customerWorkspacePanel, "customer");
         showWelcome();
+        roomStatusResetScheduler.start();
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosed(java.awt.event.WindowEvent event) {
+                roomStatusResetScheduler.close();
+            }
+        });
+    }
 
+    private void refreshRoomStatusViews() {
+        SwingUtilities.invokeLater(() -> {
+            roomMonitoringDataSource.refresh();
+            dashboardScreen.refreshRoomCounts();
+            roomManagementScreen.refreshData();
+            walkInReservationScreen.refreshAvailableRooms();
+            housekeepingScreen.refreshCurrentRoom();
+        });
+    }
+
+    private void updatePendingReservationBadge(int pendingCount) {
+        if (workspaceShell == null) {
+            return;
+        }
+        workspaceShell.getSidebar().setBadge(
+                NavItem.RESERVATIONS, pendingCount > 0 ? Integer.toString(pendingCount) : null);
+    }
+
+    private void openWalkInReservations() {
+        showWorkspace(NavItem.RESERVATIONS);
+        reservationManagementScreen.showWalkIn();
+    }
+
+    private void openCheckIn() {
+        showWorkspace(NavItem.GUEST_STAYS);
+        guestStayManagementScreen.showCheckIn();
+    }
+
+    private void openCheckOut() {
+        showWorkspace(NavItem.GUEST_STAYS);
+        guestStayManagementScreen.showCheckOut();
     }
 
     private void showLogin() {
@@ -105,15 +177,34 @@ public class HotelDesktop extends JFrame {
         getRootPane().setDefaultButton(loginScreen.getDefaultButton());
     }
 
-    private void onAuthenticated(StaffUser staffUser) {
-        authenticatedStaff = staffUser;
-        workspaceShell.getSidebar().setStaffName(staffUser.getFullName());
-        workspaceShell.getSidebar().setStaffRole(staffUser.getRole());
-        showWorkspace(NavItem.DASHBOARD);
+    private void showCustomerSignUp() {
+        customerSignUpPanel.reset();
+        cardLayout.show(screenDeck, "signup");
+        getRootPane().setDefaultButton(customerSignUpPanel.getDefaultButton());
+    }
+
+    private void onAuthenticated(AuthenticatedUser user) {
+        authenticatedUser = user;
+        if (user.getRole() == UserRole.ADMIN) {
+            workspaceShell.getSidebar().setStaffName(user.getFullName());
+            workspaceShell.getSidebar().setStaffRole(user.getRole().getDatabaseValue());
+            showWorkspace(NavItem.DASHBOARD);
+        } else {
+            customerWorkspacePanel.setCustomer(user);
+            showCustomerWorkspace();
+        }
     }
 
     private void showWorkspace(NavItem item) {
-        if (authenticatedStaff == null) {
+        if (authenticatedUser == null || !authenticatedUser.getRole().canAccessAdminWorkspace()) {
+            if (authenticatedUser != null && authenticatedUser.getRole() == UserRole.CUSTOMER) {
+                showCustomerWorkspace();
+            } else {
+                showWelcome();
+            }
+            return;
+        }
+        if (item == null) {
             showWelcome();
             return;
         }
@@ -121,12 +212,13 @@ public class HotelDesktop extends JFrame {
             dashboardScreen.refreshRoomCounts();
         } else if (item == NavItem.ROOM_MONITORING) {
             roomMonitoringScreen.refreshData();
-        } else if (item == NavItem.WALK_IN) {
+        } else if (item == NavItem.RESERVATIONS) {
             walkInReservationScreen.refreshAvailableRooms();
-        } else if (item == NavItem.CHECK_IN) {
-            checkInScreen.refreshArrivals();
-        } else if (item == NavItem.CHECK_OUT) {
-            checkOutScreen.refreshReservations();
+            reservationManagementScreen.refreshAll();
+        } else if (item == NavItem.GUEST_STAYS) {
+            guestStayManagementScreen.refreshAll();
+        } else if (item == NavItem.BOOKING_HISTORY) {
+            bookingHistoryScreen.refreshHistory();
         }
         cardLayout.show(screenDeck, "shell");
         workspaceShell.show(item);
@@ -137,18 +229,31 @@ public class HotelDesktop extends JFrame {
         }
     }
 
+    private void showCustomerWorkspace() {
+        if (authenticatedUser == null || authenticatedUser.getRole() != UserRole.CUSTOMER) {
+            showWelcome();
+            return;
+        }
+        cardLayout.show(screenDeck, "customer");
+        getRootPane().setDefaultButton(null);
+    }
+
     private void refreshReservationViews() {
         roomMonitoringDataSource.refresh();
-        roomMonitoringScreen.refreshData();
-        checkInScreen.refreshArrivals();
-        checkOutScreen.refreshReservations();
+        dashboardScreen.refreshRoomCounts();
+        roomManagementScreen.refreshData();
+        housekeepingScreen.refreshCurrentRoom();
+        guestStayManagementScreen.refreshAll();
         walkInReservationScreen.refreshAvailableRooms();
+        reservationManagementScreen.refreshAll();
+        bookingHistoryScreen.refreshHistory();
     }
 
     private void logout() {
-        authenticatedStaff = null;
+        authenticatedUser = null;
+        customerWorkspacePanel.clearCustomer();
         workspaceShell.getSidebar().setStaffName("Staff");
-        workspaceShell.getSidebar().setStaffRole("Receptionist");
+        workspaceShell.getSidebar().setStaffRole("Admin");
         loginScreen.clearCredentialsAndReset();
         showWelcome();
     }

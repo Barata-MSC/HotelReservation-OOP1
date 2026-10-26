@@ -18,7 +18,7 @@ public final class PasswordHasher {
     private static final int MIN_ITERATIONS = 10_000;
     private static final int MAX_ITERATIONS = 2_000_000;
     public static final int MIN_PASSWORD_LENGTH = 10;
-    private static final int MAX_PASSWORD_LENGTH = 128;
+    public static final int MAX_PASSWORD_LENGTH = 128;
     private static final Pattern BASE64_URL = Pattern.compile("[A-Za-z0-9_-]+");
 
     private final SecureRandom secureRandom = new SecureRandom();

@@ -422,6 +422,11 @@ public class RoomManagementScreen extends JPanel {
         showInventory();
     }
 
+    /** Reloads the room inventory after a reservation or housekeeping status change. */
+    public void refreshData() {
+        loadRooms();
+    }
+
     private void saveRoom(
             boolean update,
             JTextField roomNumberField,

@@ -14,6 +14,8 @@ import java.util.function.Consumer;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.border.EmptyBorder;
 
 public class SidebarPanel extends JPanel {
@@ -42,7 +44,15 @@ public class SidebarPanel extends JPanel {
 
         add(createBrandPanel(), BorderLayout.NORTH);
         createNavigation();
-        add(navigation, BorderLayout.CENTER);
+        JScrollPane navigationScroll = new JScrollPane(
+                navigation,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        navigationScroll.setBorder(null);
+        navigationScroll.setOpaque(false);
+        navigationScroll.getViewport().setOpaque(false);
+        navigationScroll.getVerticalScrollBar().setUnitIncrement(18);
+        add(navigationScroll, BorderLayout.CENTER);
 
         JPanel profile = createProfilePanel();
         logoutButton = createLogoutButton();
@@ -50,7 +60,7 @@ public class SidebarPanel extends JPanel {
         add(profile, BorderLayout.SOUTH);
 
         setStaffName("Staff");
-        setStaffRole("Receptionist");
+        setStaffRole("Admin");
     }
 
     public void setActive(NavItem item) {

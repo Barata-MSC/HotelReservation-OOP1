@@ -1,7 +1,7 @@
 package com.hotel.core.setup;
 
 import com.hotel.core.exception.ValidationException;
-import com.hotel.core.model.StoredStaffAccount;
+import com.hotel.core.model.StoredUserAccount;
 import com.hotel.core.repository.UserRepository;
 import com.hotel.core.service.PasswordHasher;
 import org.junit.jupiter.api.Test;
@@ -18,17 +18,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StaffAccountSetupTest {
 
     @Test
-    void createsEnabledReceptionistUsingAHashedPassword() throws Exception {
+    void createsEnabledAdminUsingAHashedPassword() throws Exception {
         CapturingUserRepository repository = new CapturingUserRepository();
         PasswordHasher passwordHasher = new PasswordHasher();
         StaffAccountSetup setup = new StaffAccountSetup(repository, passwordHasher);
-        char[] password = "a secure receptionist password".toCharArray();
+        char[] password = "a secure admin password".toCharArray();
 
-        setup.createReceptionist(" frontdesk ", " Front Desk ", password);
+        setup.createAdmin(" frontdesk ", " Front Desk ", password);
 
         assertEquals("frontdesk", repository.createdAccount.getUsername());
         assertEquals("Front Desk", repository.createdAccount.getFullName());
-        assertEquals("Receptionist", repository.createdAccount.getRole());
+        assertEquals("Admin", repository.createdAccount.getRole().getDatabaseValue());
         assertTrue(repository.createdAccount.isEnabled());
         assertFalse(repository.createdAccount.getPasswordHash().contains(new String(password)));
         assertTrue(passwordHasher.verify(password, repository.createdAccount.getPasswordHash()));
@@ -40,22 +40,23 @@ class StaffAccountSetupTest {
         StaffAccountSetup setup = new StaffAccountSetup(repository, new PasswordHasher());
 
         assertThrows(ValidationException.class,
-                () -> setup.createReceptionist(" ", "Front Desk", "a secure receptionist password".toCharArray()));
+                () -> setup.createAdmin(" ", "Front Desk", "a secure admin password".toCharArray()));
         assertNull(repository.createdAccount);
     }
 
     private static final class CapturingUserRepository implements UserRepository {
 
-        private StoredStaffAccount createdAccount;
+        private StoredUserAccount createdAccount;
 
         @Override
-        public Optional<StoredStaffAccount> findByUsername(String username) {
+        public Optional<StoredUserAccount> findByUsernameOrEmail(String identifier) {
             return Optional.empty();
         }
 
         @Override
-        public void create(StoredStaffAccount account) throws SQLException {
+        public StoredUserAccount create(StoredUserAccount account) throws SQLException {
             createdAccount = account;
+            return account.withId(1);
         }
     }
 }

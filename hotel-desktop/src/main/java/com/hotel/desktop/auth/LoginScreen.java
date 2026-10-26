@@ -5,9 +5,10 @@
 package com.hotel.desktop.auth;
 
 import com.hotel.core.exception.InvalidCredentialsException;
-import com.hotel.core.model.StaffUser;
+import com.hotel.core.model.AuthenticatedUser;
 import com.hotel.core.service.AuthenticationService;
 
+import java.awt.Cursor;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
 import javax.swing.SwingWorker;
 
 /**
- * Staff sign-in screen.
+ * Sign-in screen for both administrators and customers.
  *
  * Uses the shared core authentication service; the host supplies the authenticated-user callback.
  *
@@ -29,17 +30,44 @@ public class LoginScreen extends javax.swing.JPanel {
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(LoginScreen.class.getName());
     private static final java.awt.Color AUTH_ERROR = new java.awt.Color(179, 38, 30);
     private final AuthenticationService authenticationService;
-    private final Consumer<StaffUser> onAuthenticated;
+    private final Consumer<AuthenticatedUser> onAuthenticated;
+    private final Runnable onSignUpRequested;
 
     // Palette
     private static final java.awt.Color INK = new java.awt.Color(20, 19, 27);
     private static final java.awt.Color SUN = new java.awt.Color(255, 204, 0);
     private static final java.awt.Color HINT = new java.awt.Color(128, 128, 140);
 
-    public LoginScreen(AuthenticationService authenticationService, Consumer<StaffUser> onAuthenticated) {
+    public LoginScreen(
+            AuthenticationService authenticationService,
+            Consumer<AuthenticatedUser> onAuthenticated,
+            Runnable onSignUpRequested) {
         this.authenticationService = Objects.requireNonNull(authenticationService, "authenticationService");
         this.onAuthenticated = Objects.requireNonNull(onAuthenticated, "onAuthenticated");
+        this.onSignUpRequested = Objects.requireNonNull(onSignUpRequested, "onSignUpRequested");
         initComponents();
+        lblTitle.setText("Sign in");
+        lblUsername.setText("Username or email");
+        lblSubtitle.setText("Sign in with your admin username or customer email.");
+        lblForgot.setText("<html>New customer? <u>Sign up</u></html>");
+        lblForgot.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        lblForgot.setFocusable(true);
+        lblForgot.getAccessibleContext().setAccessibleName("Customer sign up");
+        lblForgot.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent event) {
+                showCustomerSignUp();
+            }
+        });
+        lblForgot.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent event) {
+                if (event.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER
+                        || event.getKeyCode() == java.awt.event.KeyEvent.VK_SPACE) {
+                    showCustomerSignUp();
+                }
+            }
+        });
     }
 
     /** @return the button to use as the host frame's Enter key action. */
@@ -286,9 +314,9 @@ public class LoginScreen extends javax.swing.JPanel {
 
         btnLogin.setEnabled(false);
         showAuthenticationMessage("Signing in...", HINT);
-        new SwingWorker<StaffUser, Void>() {
+        new SwingWorker<AuthenticatedUser, Void>() {
             @Override
-            protected StaffUser doInBackground() throws SQLException {
+            protected AuthenticatedUser doInBackground() throws SQLException {
                 try {
                     return authenticationService.authenticate(username, password);
                 } finally {
@@ -300,10 +328,10 @@ public class LoginScreen extends javax.swing.JPanel {
             protected void done() {
                 Arrays.fill(password, '\0');
                 try {
-                    StaffUser staffUser = get();
+                    AuthenticatedUser authenticatedUser = get();
                     txtUsername.setText("");
-                    showAuthenticationMessage("Use your staff username and password.", HINT);
-                    onAuthenticated.accept(staffUser);
+                    showAuthenticationMessage("Sign in with your admin username or customer email.", HINT);
+                    onAuthenticated.accept(authenticatedUser);
                 } catch (InterruptedException exception) {
                     Thread.currentThread().interrupt();
                     btnLogin.setEnabled(true);
@@ -320,14 +348,14 @@ public class LoginScreen extends javax.swing.JPanel {
         txtUsername.setText("");
         txtPassword.setText("");
         btnLogin.setEnabled(true);
-        showAuthenticationMessage("Use your staff username and password.", HINT);
+        showAuthenticationMessage("Sign in with your admin username or customer email.", HINT);
     }
 
     private void showAuthenticationFailure(Throwable cause) {
         if (cause instanceof InvalidCredentialsException) {
             showAuthenticationMessage(InvalidCredentialsException.GENERIC_MESSAGE, AUTH_ERROR);
         } else if (cause instanceof SQLException sqlException) {
-            logger.warning("Staff authentication database failure (SQLState="
+            logger.warning("User authentication database failure (SQLState="
                     + sqlException.getSQLState() + ", code=" + sqlException.getErrorCode() + ").");
             showAuthenticationMessage(
                     "Database unavailable. Check the setup and try again.",
@@ -337,6 +365,10 @@ public class LoginScreen extends javax.swing.JPanel {
             logger.severe("Unexpected staff authentication error: " + errorType);
             showAuthenticationMessage("Unable to sign in right now. Please try again.", AUTH_ERROR);
         }
+    }
+
+    private void showCustomerSignUp() {
+        onSignUpRequested.run();
     }
 
     private void showAuthenticationMessage(String message, java.awt.Color color) {

@@ -20,12 +20,12 @@ Do not ask me to upload files. Read them from the repo. Before anything else, re
 ## Project map
 - hotel-core (com.hotel.core): config/DatabaseConnection, model/ (Room, enums/HousekeepingStatus, enums/RoomType, ...), repository/RoomRepository, service/RoomService, exception/ (ValidationException, RoomNotFoundException), resources/db/schema.sql.
 - hotel-desktop (com.hotel.desktop): HotelDesktop (the ONLY JFrame), auth/, dashboard/, nav/ (NavItem, SidebarPanel, WorkspaceShell), roomManagement/, roomMonitoring/, houseKeepingStatus/.
-- hotel-web: customer site, final phase, not created yet. Never expose staff features there.
+- Customer-facing screens are Java Swing panels in hotel-desktop; do not add a web module or expose staff features in customer navigation.
 - ALL business rules live in hotel-core. Swing classes only display and call services. Validate in the core, not just the form.
 
 ## Adding or wiring a desktop screen
 1. A screen is a content-only JPanel. No new JFrame, no screen-specific sidebar.
-2. Add a NavItem value if one is missing (NavItem has: DASHBOARD, ROOM_MANAGEMENT, ROOM_MONITORING, HOUSEKEEPING, WALK_IN, ONLINE_RESERVATIONS, CHECK_IN, CHECK_OUT).
+2. Add a NavItem value if one is missing (current values: DASHBOARD, ROOM_MANAGEMENT, ROOM_MONITORING, HOUSEKEEPING, RESERVATIONS, CHECK_IN, CHECK_OUT). Walk-in entry, online review/payment verification, and calendar are tabs inside the Reservations panel.
 3. Register it with WorkspaceShell.addScreen(NavItem, JPanel) in HotelDesktop; switch with WorkspaceShell.show(NavItem). The shell uses a CardLayout, so screens stay mounted and keep their UI state; do not recreate them to navigate.
 4. Create services once in HotelDesktop and pass them to screens through constructors (no new RoomService inside each screen). Screens that must update after another screen changes data should take a Runnable/callback or listen to the shared data source.
 5. Do not add screens that show preview/sample data as if it were real results.
@@ -93,6 +93,6 @@ Check-out (P15, checkOutGuest):
 - Amounts have no currency symbol (the project documents name none).
 
 Screens:
-- Walk-in reservation (WALK_IN), Online reservations (ONLINE_RESERVATIONS), Check in (CHECK_IN) and Check out (CHECK_OUT) each stay as a content-only panel registered in the shell. They show validation messages from the core, use background threads for database work, and refresh Room Monitoring, Dashboard and Housekeeping after any change that affects rooms.
+- Reservations (walk-in, online review/payment verification, and calendar tabs), Check in (CHECK_IN), and Check out (CHECK_OUT) stay as content-only panels registered in the shell. They show validation messages from the core, use background threads for database work, and refresh Room Monitoring, Dashboard, and Housekeeping after any change that affects rooms.
 - When reservations exist, Room Monitoring and availability must stop relying only on is_occupied: update RoomMonitoringSnapshot/the status derivation so Occupied comes from Checked-In reservations, and sync or retire is_occupied.
 - The Dashboard's reservation table and the sidebar badge on Online reservations ("3") are sample data today. Replace them with real counts when Online reservations is built.

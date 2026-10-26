@@ -1,6 +1,7 @@
 package com.hotel.core.setup;
 
-import com.hotel.core.model.StoredStaffAccount;
+import com.hotel.core.model.StoredUserAccount;
+import com.hotel.core.model.UserRole;
 import com.hotel.core.repository.JdbcUserRepository;
 import com.hotel.core.repository.UserRepository;
 import com.hotel.core.service.AuthenticationService;
@@ -11,10 +12,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Objects;
 
-/** One-time interactive setup for a staff receptionist account. */
+/** One-time interactive setup for an administrator account. */
 public final class StaffAccountSetup {
-
-    private static final String RECEPTIONIST_ROLE = "Receptionist";
 
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
@@ -24,11 +23,12 @@ public final class StaffAccountSetup {
         this.passwordHasher = Objects.requireNonNull(passwordHasher, "passwordHasher");
     }
 
-    public void createReceptionist(String username, String fullName, char[] password) throws SQLException {
+    public void createAdmin(String username, String fullName, char[] password) throws SQLException {
         AuthenticationService.validateNewAccount(username, fullName);
         String passwordHash = passwordHasher.hash(password);
-        userRepository.create(new StoredStaffAccount(
-                0, username.trim(), passwordHash, fullName.trim(), RECEPTIONIST_ROLE, true));
+        userRepository.create(new StoredUserAccount(
+                0, username.trim(), passwordHash, fullName.trim(),
+                null, null, UserRole.ADMIN, true));
     }
 
     public static void main(String[] args) throws SQLException {
@@ -37,8 +37,8 @@ public final class StaffAccountSetup {
             throw new IllegalStateException("Run this setup utility in a terminal that supports password input");
         }
 
-        String username = console.readLine("Receptionist username: ");
-        String fullName = console.readLine("Receptionist display name: ");
+        String username = console.readLine("Admin username: ");
+        String fullName = console.readLine("Admin display name: ");
         char[] password = null;
         char[] confirmation = null;
         try {
@@ -52,8 +52,8 @@ public final class StaffAccountSetup {
                 throw new IllegalArgumentException("The passwords do not match");
             }
             new StaffAccountSetup(new JdbcUserRepository(), new PasswordHasher())
-                    .createReceptionist(username, fullName, password);
-            console.printf("Receptionist account created.%n");
+                    .createAdmin(username, fullName, password);
+            console.printf("Admin account created.%n");
         } finally {
             if (password != null) {
                 Arrays.fill(password, '\0');

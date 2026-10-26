@@ -9,6 +9,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
@@ -21,6 +22,9 @@ public final class StaffUi {
     public static final Color CANVAS = new Color(255, 222, 62);
     public static final Color MUTED = new Color(105, 91, 33);
     public static final Color LINE = new Color(236, 230, 196);
+    public static final Font HEADING_FONT = new Font("Georgia", Font.BOLD, 36);
+    public static final Font BODY_FONT = new Font("Segoe UI", Font.PLAIN, 14);
+    public static final Font LABEL_FONT = new Font("Segoe UI", Font.BOLD, 13);
 
     private StaffUi() {
     }
@@ -42,10 +46,10 @@ public final class StaffUi {
         heading.setOpaque(false);
         heading.setLayout(new javax.swing.BoxLayout(heading, javax.swing.BoxLayout.Y_AXIS));
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Georgia", Font.BOLD, 36));
+        titleLabel.setFont(HEADING_FONT);
         titleLabel.setForeground(INK);
         JLabel subtitleLabel = new JLabel(subtitle);
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        subtitleLabel.setFont(bodyFont(15));
         subtitleLabel.setForeground(MUTED);
         heading.add(titleLabel);
         heading.add(javax.swing.Box.createVerticalStrut(3));
@@ -78,19 +82,33 @@ public final class StaffUi {
 
     public static JTextField textField(int columns) {
         JTextField field = new JTextField(columns);
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        field.setFont(BODY_FONT);
         field.setForeground(INK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(190, 185, 168), 1, true),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        field.setBorder(fieldBorder());
+        return field;
+    }
+
+    public static JPasswordField passwordField(int columns) {
+        JPasswordField field = new JPasswordField(columns);
+        field.setFont(BODY_FONT);
+        field.setForeground(INK);
+        field.setBorder(fieldBorder());
         return field;
     }
 
     public static JLabel fieldLabel(String text) {
         JLabel label = new JLabel(text);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        label.setFont(LABEL_FONT);
         label.setForeground(INK);
         return label;
+    }
+
+    public static Font headingFont(int size) {
+        return new Font("Georgia", Font.BOLD, size);
+    }
+
+    public static Font bodyFont(int size) {
+        return new Font("Segoe UI", Font.PLAIN, size);
     }
 
     public static void styleTable(JTable table) {
@@ -135,5 +153,11 @@ public final class StaffUi {
         button.setFocusPainted(false);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         return button;
+    }
+
+    private static javax.swing.border.Border fieldBorder() {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(190, 185, 168), 1, true),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10));
     }
 }

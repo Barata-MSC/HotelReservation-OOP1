@@ -17,11 +17,17 @@ public class RoomRepository {
 
     private static final String SELECT_COLUMNS =
             "SELECT room_number, floor, room_type, capacity, description, "
-                    + "price_per_day, is_occupied, housekeeping_status FROM rooms";
+                    + "price_per_day, EXISTS (SELECT 1 FROM reservations r "
+                    + "WHERE r.room_number = rooms.room_number AND (r.status = 'Checked-In' "
+                    + "OR (r.status = 'Confirmed' "
+                    + "AND TIMESTAMP(r.check_in, r.check_in_time) <= CURRENT_TIMESTAMP "
+                    + "AND TIMESTAMP(r.check_out, r.check_out_time) > CURRENT_TIMESTAMP))) AS is_occupied, "
+                    + "housekeeping_status FROM rooms";
 
     public void add(Room room) throws SQLException {
         String sql = "INSERT INTO rooms (room_number, floor, room_type, capacity, description, "
-                + "price_per_day, is_occupied, housekeeping_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "price_per_day, is_occupied, housekeeping_status, dirty_since) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'Dirty' THEN CURRENT_TIMESTAMP ELSE NULL END)";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             bindRoom(statement, room);
@@ -32,7 +38,9 @@ public class RoomRepository {
     public void update(Room room) throws SQLException {
         findByNumber(room.getRoomNumber());
         String sql = "UPDATE rooms SET floor = ?, room_type = ?, capacity = ?, description = ?, "
-                + "price_per_day = ?, is_occupied = ?, housekeeping_status = ? WHERE room_number = ?";
+                + "price_per_day = ?, is_occupied = ?, housekeeping_status = ?, "
+                + "dirty_since = CASE WHEN ? = 'Dirty' THEN COALESCE(dirty_since, CURRENT_TIMESTAMP) "
+                + "ELSE NULL END WHERE room_number = ?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, room.getFloor());
@@ -42,7 +50,8 @@ public class RoomRepository {
             statement.setBigDecimal(5, room.getPricePerDay());
             statement.setBoolean(6, room.isOccupied());
             statement.setString(7, room.getHousekeepingStatus().getDatabaseValue());
-            statement.setInt(8, room.getRoomNumber());
+            statement.setString(8, room.getHousekeepingStatus().getDatabaseValue());
+            statement.setInt(9, room.getRoomNumber());
             statement.executeUpdate();
         }
     }
@@ -104,12 +113,25 @@ public class RoomRepository {
 
     public void setHousekeepingStatus(int roomNumber, HousekeepingStatus status) throws SQLException {
         findByNumber(roomNumber);
-        String sql = "UPDATE rooms SET housekeeping_status = ? WHERE room_number = ?";
+        String sql = "UPDATE rooms SET housekeeping_status = ?, "
+                + "dirty_since = CASE WHEN ? = 'Dirty' THEN CURRENT_TIMESTAMP "
+                + "ELSE NULL END WHERE room_number = ?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, status.getDatabaseValue());
-            statement.setInt(2, roomNumber);
+            statement.setString(2, status.getDatabaseValue());
+            statement.setInt(3, roomNumber);
             statement.executeUpdate();
+        }
+    }
+
+    public int resetExpiredDirtyRooms(java.time.LocalDateTime cutoff) throws SQLException {
+        String sql = "UPDATE rooms SET housekeeping_status = 'Clean', dirty_since = NULL "
+                + "WHERE housekeeping_status = 'Dirty' AND dirty_since IS NOT NULL AND dirty_since <= ?";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setTimestamp(1, java.sql.Timestamp.valueOf(cutoff));
+            return statement.executeUpdate();
         }
     }
 
@@ -125,8 +147,8 @@ public class RoomRepository {
     }
 
     public boolean hasCheckedInGuest(int roomNumber) throws SQLException {
-        String sql = "SELECT 1 FROM reservations "
-                + "WHERE room_number = ? AND status = 'Checked-In' LIMIT 1";
+        String sql = "SELECT 1 FROM reservations WHERE room_number = ? AND status = 'Checked-In' "
+                + "LIMIT 1";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, roomNumber);
@@ -145,6 +167,7 @@ public class RoomRepository {
         statement.setBigDecimal(6, room.getPricePerDay());
         statement.setBoolean(7, room.isOccupied());
         statement.setString(8, room.getHousekeepingStatus().getDatabaseValue());
+        statement.setString(9, room.getHousekeepingStatus().getDatabaseValue());
     }
 
     private static List<Room> readRooms(PreparedStatement statement) throws SQLException {

@@ -26,6 +26,7 @@ final class RoomMonitoringComponents {
     static final Color INK = new Color(20, 18, 26);
     static final Color SUN = new Color(255, 204, 0);
     static final Color GREEN = new Color(34, 197, 94);
+    static final Color OCCUPIED_BLACK = INK;
     static final Color OOS_LINE = new Color(105, 105, 105);
 
     private RoomMonitoringComponents() {
@@ -34,7 +35,8 @@ final class RoomMonitoringComponents {
     static Color statusColor(RoomMonitoringStatus status) {
         return switch (status) {
             case AVAILABLE -> GREEN;
-            case OCCUPIED, UNDER_MAINTENANCE -> INK;
+            case OCCUPIED -> OCCUPIED_BLACK;
+            case UNDER_MAINTENANCE -> INK;
             case DIRTY, OUT_OF_SERVICE -> Color.WHITE;
         };
     }

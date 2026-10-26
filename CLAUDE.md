@@ -4,14 +4,14 @@
 
 This is a Java Object-Oriented Hotel Reservation System built as a Maven multi-module project. Before changing project code, read [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md). Consult the original course guide, flowcharts, and dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/) when a task depends on requirements or screen flow.
 
-Treat the README's feature lists and architecture trees as plans unless the feature is present in the code and verified. The `hotel-core` and `hotel-desktop` modules exist; `hotel-web` is planned for the final phase and has not been created. The desktop login-to-dashboard transition is a UI preview, not authentication. Dashboard and other listed desktop previews are not production workflows or persisted data.
+Treat the README's feature lists and architecture trees as plans unless the feature is present in the code and verified. The `hotel-core` and `hotel-desktop` modules exist. Customer-facing screens are Java Swing in `hotel-desktop`; do not add HTML, CSS, JavaScript, or a web module. The administrator dashboard now loads room and reservation summaries from the database, but database-backed workflows still require the configured schema and credentials.
 
 ## Architecture boundaries
 
 - `hotel-core` owns shared domain models, repositories, services, validation, exceptions, database configuration/schema, and all business rules.
-- `hotel-desktop` is the staff/receptionist Java Swing application. Keep business rules out of UI classes; call shared core services instead.
-- The planned `hotel-web` is customer-facing only and must use `hotel-core`. Do not expose staff workflows or administrative functions through it.
-- Both applications are intended to share one MariaDB/MySQL database.
+- `hotel-desktop` is the Java Swing application for administrators and customers. Keep business rules out of UI classes; call shared core services instead.
+- Customer screens must be separate from administrator navigation and must never expose staff workflows or administrative functions.
+- Both workspaces are intended to share one MariaDB/MySQL database.
 - Keep changes within the relevant module and follow the existing package structure and conventions.
 
 ## Desktop UI conventions

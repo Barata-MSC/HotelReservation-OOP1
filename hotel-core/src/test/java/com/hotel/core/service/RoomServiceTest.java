@@ -9,6 +9,7 @@ import com.hotel.core.repository.RoomRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -170,6 +171,17 @@ class RoomServiceTest {
         }
     }
 
+    @Test
+    void dirtyRoomResetUsesOneHourCutoff() throws Exception {
+        StubRoomRepository repository = new StubRoomRepository();
+        RoomService service = new RoomService(repository);
+        LocalDateTime now = LocalDateTime.of(2025, 3, 8, 12, 30);
+
+        assertEquals(2, service.resetExpiredDirtyRooms(now));
+        assertEquals(now.minusHours(1), repository.dirtyRoomCutoff);
+        assertThrows(ValidationException.class, () -> service.resetExpiredDirtyRooms(null));
+    }
+
     private static Room room(int roomNumber, int floor, int capacity, BigDecimal price) {
         return room(roomNumber, floor, capacity, price, HousekeepingStatus.CLEAN);
     }
@@ -197,6 +209,7 @@ class RoomServiceTest {
         private boolean checkedInGuest;
         private Room existingRoom = room(101, 1, 1, BigDecimal.TEN);
         private final List<Room> rooms = new ArrayList<>();
+        private LocalDateTime dirtyRoomCutoff;
 
         @Override
         public boolean existsByNumber(int roomNumber) {
@@ -228,6 +241,12 @@ class RoomServiceTest {
         @Override
         public List<Room> findAll() {
             return new ArrayList<>(rooms);
+        }
+
+        @Override
+        public int resetExpiredDirtyRooms(LocalDateTime cutoff) {
+            dirtyRoomCutoff = cutoff;
+            return 2;
         }
     }
 }

@@ -9,9 +9,12 @@ import com.hotel.core.repository.RoomRepository;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class RoomService {
+
+    public static final long DIRTY_ROOM_RESET_DELAY_HOURS = 1;
 
     private final RoomRepository roomRepository;
 
@@ -90,6 +93,14 @@ public class RoomService {
 
     public void setOccupied(int roomNumber, boolean occupied) throws SQLException {
         roomRepository.setOccupied(roomNumber, occupied);
+    }
+
+    public int resetExpiredDirtyRooms(LocalDateTime now) throws SQLException {
+        if (now == null) {
+            throw new ValidationException("The current time is required.");
+        }
+        return roomRepository.resetExpiredDirtyRooms(
+                now.minusHours(DIRTY_ROOM_RESET_DELAY_HOURS));
     }
 
     private static void validateRoom(Room room) {

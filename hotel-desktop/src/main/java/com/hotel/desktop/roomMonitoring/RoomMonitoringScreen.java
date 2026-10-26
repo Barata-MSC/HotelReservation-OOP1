@@ -2,6 +2,8 @@ package com.hotel.desktop.roomMonitoring;
 
 import com.hotel.core.model.Room;
 import com.hotel.core.model.RoomMonitoringSnapshot;
+import com.hotel.core.model.enums.HousekeepingStatus;
+import com.hotel.core.service.RoomService;
 import com.hotel.core.model.enums.RoomMonitoringStatus;
 import com.hotel.core.model.enums.RoomType;
 import com.hotel.desktop.roomMonitoring.RoomMonitoringComponents.FilterButton;
@@ -19,6 +21,8 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -38,6 +42,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
@@ -59,6 +66,7 @@ public final class RoomMonitoringScreen extends JPanel {
     private static final Color MUTED = new Color(105, 91, 33);
 
     private final RoomMonitoringDataSource dataSource;
+    private final RoomService roomService;
     private final JPanel roomRows = new JPanel();
     private final JPanel typeRows = new JPanel();
     private final Map<RoomMonitoringStatus, JLabel> countLabels =
@@ -87,8 +95,9 @@ public final class RoomMonitoringScreen extends JPanel {
     private Integer selectedRoomNumber;
     private int tilesPerRow = -1;
 
-    public RoomMonitoringScreen(RoomMonitoringDataSource dataSource) {
+    public RoomMonitoringScreen(RoomMonitoringDataSource dataSource, RoomService roomService) {
         this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+        this.roomService = Objects.requireNonNull(roomService, "roomService");
         setLayout(new BorderLayout());
         setBackground(CANVAS);
         setPreferredSize(new Dimension(1024, 800));
@@ -589,7 +598,20 @@ public final class RoomMonitoringScreen extends JPanel {
                 for (int index = start; index < end; index++) {
                     RoomMonitoringSnapshot.MonitoredRoom room = floorRooms.get(index);
                     boolean selected = Objects.equals(selectedRoomNumber, room.getRoom().getRoomNumber());
-                    row.add(new RoomTile(room, selected, () -> selectRoom(room.getRoom().getRoomNumber())));
+                    RoomTile tile = new RoomTile(room, selected,
+                            () -> selectRoom(room.getRoom().getRoomNumber()));
+                    tile.addMouseListener(new MouseAdapter() {
+                        @Override
+                        public void mousePressed(MouseEvent event) {
+                            showRoomOverrideMenu(tile, room, event);
+                        }
+
+                        @Override
+                        public void mouseReleased(MouseEvent event) {
+                            showRoomOverrideMenu(tile, room, event);
+                        }
+                    });
+                    row.add(tile);
                 }
                 row.setMaximumSize(new Dimension(Integer.MAX_VALUE, row.getPreferredSize().height));
                 row.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -601,6 +623,33 @@ public final class RoomMonitoringScreen extends JPanel {
         }
         roomRows.revalidate();
         roomRows.repaint();
+    }
+
+    private void showRoomOverrideMenu(
+            RoomTile tile, RoomMonitoringSnapshot.MonitoredRoom room, MouseEvent event) {
+        if (!event.isPopupTrigger()) {
+            return;
+        }
+        JPopupMenu menu = new JPopupMenu();
+        JMenuItem available = new JMenuItem("Mark Available (Clean)");
+        available.addActionListener(action -> updateRoomStatus(
+                room.getRoom().getRoomNumber(), HousekeepingStatus.CLEAN));
+        JMenuItem maintenance = new JMenuItem("Mark Under Maintenance");
+        maintenance.addActionListener(action -> updateRoomStatus(
+                room.getRoom().getRoomNumber(), HousekeepingStatus.UNDER_MAINTENANCE));
+        menu.add(available);
+        menu.add(maintenance);
+        menu.show(tile, event.getX(), event.getY());
+    }
+
+    private void updateRoomStatus(int roomNumber, HousekeepingStatus status) {
+        try {
+            roomService.setHousekeepingStatus(roomNumber, status);
+            dataSource.refresh();
+        } catch (Exception exception) {
+            JOptionPane.showMessageDialog(this, exception.getMessage(),
+                    "Room status was not changed", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private int calculateTilesPerRow() {

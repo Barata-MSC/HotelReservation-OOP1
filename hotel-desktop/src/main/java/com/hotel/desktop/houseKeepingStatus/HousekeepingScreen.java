@@ -2,9 +2,12 @@ package com.hotel.desktop.houseKeepingStatus;
 
 import com.hotel.core.exception.RoomNotFoundException;
 import com.hotel.core.exception.ValidationException;
+import com.hotel.core.model.AuthenticatedUser;
+import com.hotel.core.model.Reservation;
 import com.hotel.core.model.Room;
 import com.hotel.core.model.enums.HousekeepingStatus;
 import com.hotel.core.model.enums.RoomMonitoringStatus;
+import com.hotel.core.service.ReservationService;
 import com.hotel.core.service.RoomService;
 
 import java.awt.BorderLayout;
@@ -21,15 +24,20 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.JTextField;
+import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 /** Housekeeping status editor backed by the shared room service. */
@@ -50,6 +58,8 @@ public final class HousekeepingScreen extends JPanel {
     private static final Color ERROR = new Color(179, 38, 30);
 
     private final RoomService roomService;
+    private final ReservationService reservationService;
+    private final Supplier<AuthenticatedUser> currentAdmin;
     private final Runnable onRoomChanged;
     private final JTextField roomNumberField = new JTextField();
     private final JLabel currentStatusLabel = new JLabel("Current status   Find a room");
@@ -70,8 +80,14 @@ public final class HousekeepingScreen extends JPanel {
     private Room currentRoom;
     private HousekeepingStatus selectedStatus;
 
-    public HousekeepingScreen(RoomService roomService, Runnable onRoomChanged) {
+    public HousekeepingScreen(
+            RoomService roomService,
+            ReservationService reservationService,
+            Supplier<AuthenticatedUser> currentAdmin,
+            Runnable onRoomChanged) {
         this.roomService = Objects.requireNonNull(roomService, "roomService");
+        this.reservationService = Objects.requireNonNull(reservationService, "reservationService");
+        this.currentAdmin = Objects.requireNonNull(currentAdmin, "currentAdmin");
         this.onRoomChanged = Objects.requireNonNull(onRoomChanged, "onRoomChanged");
 
         setLayout(new BorderLayout());
@@ -454,6 +470,14 @@ public final class HousekeepingScreen extends JPanel {
         repaint();
     }
 
+    /** Refreshes the room currently open in the housekeeping workspace. */
+    public void refreshCurrentRoom() {
+        if (currentRoomNumber >= 0) {
+            roomNumberField.setText(Integer.toString(currentRoomNumber));
+            findRoom();
+        }
+    }
+
     private void updateStatus() {
         if (currentRoom == null || selectedStatus == null) {
             return;
@@ -468,27 +492,110 @@ public final class HousekeepingScreen extends JPanel {
                     "Housekeeping status cannot be changed while a guest is checked in.");
             return;
         }
-        try {
-            roomService.setHousekeepingStatus(currentRoomNumber, selectedStatus);
-            currentRoom = roomService.findByNumber(currentRoomNumber);
-            setCurrentStatus(RoomMonitoringStatus.fromRoom(currentRoom));
-            occupancyValue.setText(currentRoom.isOccupied() ? "Occupied" : "Not occupied");
-            selectedStatus = null;
-            statusGroup.clearSelection();
-            resetStatusOptionStyles();
-            updateButton.setEnabled(false);
-            onRoomChanged.run();
-            showBanner("success", "Status updated.",
-                    "Room " + currentRoomNumber + " is now "
-                            + displayStatus(RoomMonitoringStatus.fromRoom(currentRoom)) + ".");
-        } catch (ValidationException exception) {
-            showBanner("error", "Status not changed.", exception.getMessage());
-        } catch (RoomNotFoundException exception) {
-            clearCurrentRoom();
-            showBanner("error", "Room no longer exists.", "Find another room and try again.");
-        } catch (SQLException exception) {
-            showBanner("error", "Database unavailable.", exception.getMessage());
+        int roomNumber = currentRoomNumber;
+        HousekeepingStatus status = selectedStatus;
+        updateButton.setEnabled(false);
+        new SwingWorker<List<Reservation>, Void>() {
+            @Override
+            protected List<Reservation> doInBackground() throws Exception {
+                if (status != HousekeepingStatus.UNDER_MAINTENANCE
+                        && status != HousekeepingStatus.OUT_OF_SERVICE) {
+                    return List.of();
+                }
+                return reservationService.findUpcomingReservationsForRoom(currentAdmin.get(), roomNumber);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Reservation> affected = get();
+                    if (currentRoomNumber != roomNumber || selectedStatus != status) {
+                        return;
+                    }
+                    if (!affected.isEmpty() && !confirmUpcomingReservationWarning(roomNumber, affected)) {
+                        updateButton.setEnabled(true);
+                        return;
+                    }
+                    saveHousekeepingStatus(roomNumber, status);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    updateButton.setEnabled(true);
+                    showBanner("error", "Status not changed.", "Checking upcoming reservations was interrupted.");
+                } catch (ExecutionException exception) {
+                    updateButton.setEnabled(true);
+                    Throwable cause = exception.getCause();
+                    showBanner("error", "Status not changed.",
+                            cause == null ? exception.getMessage() : cause.getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    private boolean confirmUpcomingReservationWarning(int roomNumber, List<Reservation> affected) {
+        StringBuilder message = new StringBuilder("Room ")
+                .append(roomNumber)
+                .append(" has upcoming Pending or Confirmed reservations:\n\n");
+        for (Reservation reservation : affected) {
+            message.append(reservation.reference())
+                    .append(" · ")
+                    .append(reservation.guest().fullName())
+                    .append(" · ")
+                    .append(reservation.checkIn())
+                    .append(" to ")
+                    .append(reservation.checkOut())
+                    .append(" · ")
+                    .append(reservation.status().getDatabaseValue())
+                    .append('\n');
         }
+        message.append("\nContinue with this status change?");
+        return JOptionPane.showConfirmDialog(
+                this, message.toString(), "Upcoming reservations",
+                JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE) == JOptionPane.YES_OPTION;
+    }
+
+    private void saveHousekeepingStatus(int roomNumber, HousekeepingStatus status) {
+        new SwingWorker<Room, Void>() {
+            @Override
+            protected Room doInBackground() throws Exception {
+                roomService.setHousekeepingStatus(roomNumber, status);
+                return roomService.findByNumber(roomNumber);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    Room updatedRoom = get();
+                    if (currentRoomNumber != roomNumber) {
+                        return;
+                    }
+                    currentRoom = updatedRoom;
+                    setCurrentStatus(RoomMonitoringStatus.fromRoom(currentRoom));
+                    occupancyValue.setText(currentRoom.isOccupied() ? "Occupied" : "Not occupied");
+                    selectedStatus = null;
+                    statusGroup.clearSelection();
+                    resetStatusOptionStyles();
+                    updateButton.setEnabled(false);
+                    onRoomChanged.run();
+                    showBanner("success", "Status updated.",
+                            "Room " + currentRoomNumber + " is now "
+                                    + displayStatus(RoomMonitoringStatus.fromRoom(currentRoom)) + ".");
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    updateButton.setEnabled(true);
+                    showBanner("error", "Status not changed.", "Saving the room status was interrupted.");
+                } catch (ExecutionException exception) {
+                    updateButton.setEnabled(true);
+                    Throwable cause = exception.getCause();
+                    if (cause instanceof RoomNotFoundException) {
+                        clearCurrentRoom();
+                        showBanner("error", "Room no longer exists.", "Find another room and try again.");
+                    } else {
+                        showBanner("error", "Status not changed.",
+                                cause == null ? exception.getMessage() : cause.getMessage());
+                    }
+                }
+            }
+        }.execute();
     }
 
     private void cancel() {

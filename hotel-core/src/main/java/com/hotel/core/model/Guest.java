@@ -10,5 +10,19 @@ public record Guest(
         GuestClassification classification,
         String discountIdType,
         String discountIdNumber,
-        boolean discountVerified) {
+        boolean discountVerified,
+        String discountIdProofPath) {
+
+    public Guest(
+            long id,
+            String fullName,
+            String contactNumber,
+            String email,
+            GuestClassification classification,
+            String discountIdType,
+            String discountIdNumber,
+            boolean discountVerified) {
+        this(id, fullName, contactNumber, email, classification,
+                discountIdType, discountIdNumber, discountVerified, null);
+    }
 }

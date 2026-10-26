@@ -7,10 +7,9 @@ public enum NavItem {
     ROOM_MANAGEMENT("Room management", DashboardScreen.Glyph.DOOR),
     ROOM_MONITORING("Room monitoring", DashboardScreen.Glyph.GRID),
     HOUSEKEEPING("Housekeeping", DashboardScreen.Glyph.SPARKLE),
-    WALK_IN("Walk-in reservation", DashboardScreen.Glyph.PERSON_PLUS),
-    ONLINE_RESERVATIONS("Online reservations", DashboardScreen.Glyph.GLOBE),
-    CHECK_IN("Check in", DashboardScreen.Glyph.CHECK_IN),
-    CHECK_OUT("Check out", DashboardScreen.Glyph.CHECK_OUT);
+    RESERVATIONS("Reservations", DashboardScreen.Glyph.PERSON_PLUS),
+    GUEST_STAYS("Guest stays", DashboardScreen.Glyph.CHECK_IN),
+    BOOKING_HISTORY("Booking history", DashboardScreen.Glyph.HISTORY);
 
     private final String label;
     private final DashboardScreen.Glyph glyph;

@@ -5,6 +5,8 @@ import java.awt.CardLayout;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.JPanel;
 
 public class WorkspaceShell extends JPanel {
@@ -33,7 +35,15 @@ public class WorkspaceShell extends JPanel {
         }
 
         registeredScreens.put(item, screen);
-        screens.add(screen, item.name());
+        JScrollPane pageScroll = new JScrollPane(
+                screen,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        pageScroll.setBorder(null);
+        pageScroll.setMinimumSize(new java.awt.Dimension(0, 0));
+        pageScroll.getViewport().setBackground(screen.getBackground());
+        pageScroll.getVerticalScrollBar().setUnitIncrement(18);
+        screens.add(pageScroll, item.name());
     }
 
     public void show(NavItem item) {
