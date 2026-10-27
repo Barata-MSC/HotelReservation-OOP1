@@ -1,18 +1,18 @@
 # Object-Oriented Hotel Reservation System
 
-A Java-based Object-Oriented Hotel Reservation System built as a Maven multi-module project. The system uses a shared core and MariaDB/MySQL database:
+A Java 21 Object-Oriented Hotel Reservation System delivered as a Maven multi-module desktop application backed by a shared MariaDB/MySQL database:
 
-- **`hotel-desktop`** — the Java Swing application for both administrators and customers. It hosts staff workflows and the customer workspace in the same `JFrame`.
+- **`hotel-desktop`** — the Java Swing application for both administrators and customers. Separate role-specific workspaces are hosted in the same `JFrame`.
 - **`hotel-core`** — shared Java code containing the models, repositories, services, configuration, exceptions, database schema, and all business rules.
 
-The desktop application connects to the shared database and calls `hotel-core`. Customer-facing screens are Java Swing; this project does not use HTML, CSS, JavaScript, Spring Boot, or a separate web module.
+The desktop application connects to the shared database and calls `hotel-core`. The proposed `hotel-web` application was cancelled and is out of scope: customer-facing booking and payment screens are part of the Java Swing desktop application. This repository has no web frontend, web server, or `hotel-web` module.
 
-> **Project status:** In development. The `hotel-core` and `hotel-desktop` modules include role-aware Admin/Customer authentication, customer booking and payment-proof screens, an administrator Reservations workspace, a filtered booking-history ledger, live dashboard reservation summaries, and room dirty-time reset support. Existing databases must apply migrations 001–005 in order. Passwords are stored as PBKDF2 hashes. Database-backed runtime behavior still depends on local database configuration. Feature checkboxes below remain unchecked until implementation and testing are complete.
+> **Project status:** The repository implements Java Swing desktop workflows for role-aware Admin/Customer authentication, customer booking and payment-proof screens, administrator reservation management, booking history, database-backed dashboard summaries, and room dirty-time reset. The current schema is in `hotel-core/src/main/resources/db/schema.sql`; existing databases may need migrations 001–006 applied in order, depending on their starting schema. Passwords are stored as PBKDF2 hashes. Database-backed runtime behavior requires local database configuration and the appropriate schema. The feature checklist below is a completion tracker; its boxes remain unchecked until each item has been fully implemented and verified.
 
 ## Contents
 
 - [Project Goals](#project-goals)
-- [Planned Features](#planned-features)
+- [Feature Checklist](#feature-checklist)
 - [Customer Workspace](#customer-workspace)
 - [Desktop Screens](#desktop-screens)
 - [Technology Stack](#technology-stack)
@@ -30,19 +30,19 @@ The desktop application connects to the shared database and calls `hotel-core`. 
 
 The project applies object-oriented programming concepts to a hotel reservation system through a shared Java core and separate administrator and customer workspaces in one desktop application.
 
-1. **Build the shared core first.** Put the OOP models, repository operations, services, exceptions, database connection configuration, schema, and all business rules in `hotel-core`.
-2. **Build the staff desktop application.** Use Java Swing in `hotel-desktop` for walk-in reservations and the hotel's staff workflows. This is the first application phase.
-3. **Add the customer workspace in Swing.** Host customer-facing screens in `hotel-desktop` and call `hotel-core` for shared business rules.
-4. **Share one database.** The staff and customer workspaces use the same MariaDB/MySQL database so room information and reservation records remain consistent.
-5. **Keep online booking separate from the walk-in workflow.** Online reservations use `ReservationType = Online` and start with status `Pending`. Administrators review them in the desktop application's reservation management screen.
+1. **Keep shared logic in the core.** OOP models, repository operations, services, exceptions, database configuration, schema, and business rules belong in `hotel-core`.
+2. **Provide staff workflows in the desktop application.** Administrators manage rooms and reservations, monitor rooms, handle check-in/check-out, and maintain housekeeping through Java Swing screens in `hotel-desktop`.
+3. **Provide customer workflows in the desktop application.** Customer-facing booking, payment, booking-history, notification, and receipt screens are Java Swing panels in `hotel-desktop`; a web application is not part of the project.
+4. **Share one database.** Administrator and customer workspaces use the same MariaDB/MySQL database so room and reservation records remain consistent.
+5. **Keep online booking separate from walk-in operations.** Online reservations use `ReservationType = Online` and start with status `Pending`; administrators review them in the desktop application's Reservations workspace.
 
-Customer online reservations are a Java Swing workflow, not a website. The customer dashboard, date/time room search, pending online booking, customer-entered partial payments (with 50% suggested), proof submission, booking history, notifications, and PDF receipt screens are implemented in code. Administrators review online bookings and payments in the Reservations workspace; the dashboard's reservation summary is database-driven. Database-backed behavior requires a configured MariaDB/MySQL database with all migrations applied.
+The customer dashboard, date/time room search, pending online booking, customer-entered partial payments (with 50% suggested), proof submission, booking history, notifications, and PDF receipt screens are implemented in code. Administrators review online bookings and payments in the Reservations workspace; the dashboard's reservation summary is database-driven. Database-backed behavior requires a configured MariaDB/MySQL database with a schema version compatible with the application.
 
 Administrators can review archived checkout, cancellation, and dispute events from the Booking history sidebar page. Its date filters cover the past seven calendar days, today, the current month, and the current year. Existing terminal reservations are backfilled by migration 005; because older records do not store status-change times, the migration uses the transaction payment time for checked-out stays when available and otherwise uses reservation creation time.
 
-## Planned Features
+## Feature Checklist
 
-The checklists are intentionally left unchecked. Update them only as features are implemented and tested.
+These checklists track end-to-end completion, not whether code exists. Keep an item unchecked until its implementation and verification are complete; some listed capabilities already have code, but database-backed behavior still depends on the configured environment.
 
 ### Shared core (`hotel-core`)
 
@@ -78,7 +78,7 @@ The checklists are intentionally left unchecked. Update them only as features ar
 
 ## Customer Workspace
 
-Customer-facing screens are Java Swing `JPanel` cards hosted by `HotelDesktop`. This section lists planned customer pages; staff operations remain restricted to the administrator workspace.
+Customer-facing screens are Java Swing `JPanel` cards hosted by `HotelDesktop`. These implemented customer pages are hosted in the Swing desktop application; staff operations remain restricted to the administrator workspace. Their database-backed behavior requires a valid local database configuration.
 
 ### Customer pages
 
@@ -107,13 +107,13 @@ The Java Swing application is developed in `hotel-desktop`. It has Welcome and L
 | **Room Monitoring** | Read-only display of available and occupied rooms, availability by room type, Dirty rooms, maintenance, and out-of-service rooms. |
 | **Housekeeping** | Update room status to Clean, Dirty, Under Maintenance, or Out of Service. |
 
-The desktop application will call `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
+The desktop application calls `hotel-core` for reservation, availability, authentication, billing, and other business rules. UI classes should not contain a second implementation of those rules.
 
 The shared administrator shell switches among mounted workspace cards. Customer accounts route to a separate customer-only navigation shell; administrator navigation checks the authenticated role. Welcome, login, sign-up, and both workspaces are panels in the same `JFrame`. Customer reservation persistence, room-row locking, proof-file storage, customer booking history, and customer notifications are implemented through `hotel-core`. The Reservations workspace includes walk-in, online review/payment verification, and calendar tabs. Admin dashboard reservation summaries are database-driven. Admin checkout stores walk-in payment details and marks the room Dirty; online checkout requires fully verified online payments. Customer and walk-in reservation receipts can be downloaded as PDFs. See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for workflow rules and source-document alignment notes.
 
 ## Technology Stack
 
-| Area | Planned technology | Purpose |
+| Area | Technology | Purpose |
 |---|---|---|
 | IDEs | Apache NetBeans and Visual Studio Code | Team development, editing, and debugging |
 | Language | Java 17 or later; JDK 21 is installed for development | Shared application logic and OOP models |
@@ -139,7 +139,7 @@ The project is a Maven multi-module build with two modules: `hotel-core` and `ho
 
 The administrator and customer workspaces use one MariaDB/MySQL database. Online reservations submitted through the customer workspace are saved with reservation type `Online` and status `Pending`, then reviewed by administrators in `hotel-desktop`.
 
-### Suggested project structure
+### Current project structure
 
 ```text
 hotel-reservation/
@@ -154,48 +154,48 @@ hotel-reservation/
 │       ├── main/
 │       │   ├── java/com/hotel/core/
 │       │   │   ├── config/                  # DatabaseConnection
-│       │   │   ├── model/
-│       │   │   │   ├── Room, Reservation, Transaction
-│       │   │   │   ├── guest/               # Guest, RegularGuest, DiscountedGuest
-│       │   │   │   └── enums/               # ReservationType, ReservationStatus,
-│       │   │   │                            # HousekeepingStatus, GuestClassification
-│       │   │   ├── repository/              # Room, Guest, Reservation, Transaction, User
-│       │   │   ├── service/                 # Room, Availability, Reservation, Billing, Auth
-│       │   │   └── exception/
-│       │   └── resources/db/schema.sql      # Shared database schema
-│       └── test/java/com/hotel/core/        # Core tests
+│   │   │   ├── model/                      # Rooms, reservations, users, receipts, snapshots
+│   │   │   ├── model/enums/                # Reservation, room, guest, and payment values
+│   │   │   ├── repository/                 # JDBC persistence and booking-history access
+│   │   │   ├── service/                    # Room, reservation, customer, and auth workflows
+│   │   │   ├── setup/                      # Initial administrator account utility
+│   │   │   └── exception/
+│   │   └── resources/db/                   # Current schema and numbered migrations
+│       └── test/java/com/hotel/core/        # Core service and setup tests
 │
 ├── hotel-desktop/                           # Admin and customer Java Swing app
 │   ├── pom.xml
 │   └── src/
 │       ├── main/java/com/hotel/desktop/
 │       │   ├── HotelDesktop.java            # Single JFrame hosting the desktop screens
-│       │   ├── auth/                        # WelcomeScreen, LoginScreen, customer sign up
-│       │   ├── customer/                    # Customer workspace panels
-│       │   ├── dashboard/                   # DashboardScreen and shared UI widgets
-│       │   └── nav/                         # NavItem, SidebarPanel, WorkspaceShell
-│       └── test/java/                       # Desktop tests, as added
+│       │   ├── auth/                        # Welcome, login, and customer sign-up panels
+│       │   ├── checkIn/ and checkOut/       # Staff stay-management workflows
+│       │   ├── customer/                    # Customer-only Swing workspace and screens
+│       │   ├── dashboard/ and nav/          # Staff dashboard and shared navigation
+│       │   ├── reservation/                 # Walk-in, online, calendar, and history screens
+│       │   ├── roomManagement/              # Room administration
+│       │   ├── roomMonitoring/               # Read-only room status and shared data source
+│       │   └── houseKeepingStatus/            # Housekeeping screen
 │
 ```
 
-The tree shows the planned module organization. The specific files and panels can be added as implementation progresses, but the module boundaries should remain: shared code and business rules in `hotel-core`, and both administrator and customer Swing UI in `hotel-desktop`.
+The tree summarizes the current source layout. Keep the module boundaries: shared code and business rules in `hotel-core`, and administrator and customer Swing UI in `hotel-desktop`. There is no separate web module.
 
 ## Core OOP Design
 
 The shared domain classes and business operations belong in **`hotel-core`**, under `com.hotel.core`. Both desktop workspaces should call the core services and repositories instead of duplicating these classes or rules.
 
-- **`Room`** — room number, floor, type, capacity, description, daily rate, availability, and housekeeping status.
-- **`Guest`** — an abstract class containing shared guest information and the contract for guest-specific billing rules.
-- **`RegularGuest`** — no discount and 12% tax, according to the project guide.
-- **`DiscountedGuest`** — 20% discount and tax exemption, according to the project guide; eligibility should be verified and recorded.
-- **`Reservation`** — guest, room, check-in/check-out dates, number of nights, reservation type, and reservation status.
-- **`Transaction`** — reservation reference, room charges, discount, tax, total, cash tendered, change, payment status, and receipt details.
-- **Enums** — `ReservationType`, `ReservationStatus`, `HousekeepingStatus`, and `GuestClassification` represent the fixed values supplied in the project layout.
-- **Repositories** — database operations for rooms, guests, reservations, transactions, and users.
-- **Services** — shared business rules and multi-step workflows for room management, availability, reservations, billing, and authentication.
+- **`Room`** — an immutable model with room number, floor, type, capacity, description, daily rate, occupancy, and housekeeping status.
+- **`Guest`** — an immutable record of guest details, classification, discount-ID details, verification state, and optional proof path.
+- **Guest billing** — `GuestClassification` determines the regular or discounted billing rules; a discounted rate applies only when the discount ID is verified.
+- **`Reservation`** — guest, room, check-in/check-out dates and times, stored rate, number of nights, guest count, reservation type, and status.
+- **Checkout and payment models** — checkout bills and receipts carry calculated amounts and receipt data; cash transactions and customer payment records are persisted through the repositories.
+- **Enums** — reservation, room, housekeeping, guest classification, booking history, and customer payment enums represent fixed domain values.
+- **Repositories** — `RoomRepository`, `ReservationRepository`, user repositories, and `BookingHistoryRepository` handle database operations.
+- **Services** — `RoomService`, `ReservationService`, `CustomerReservationService`, and `AuthenticationService` own shared workflows; `PaymentProofStorage` and `RoomStatusResetScheduler` support proof storage and room status maintenance.
 - **Exceptions** — shared exception types for core operations.
 
-Suggested status values:
+Current status values:
 
 - **Reservation:** Pending, Confirmed, Checked-In, Checked-Out, Cancelled.
 - **Housekeeping:** Clean, Dirty, Under Maintenance, Out of Service.
@@ -224,11 +224,11 @@ Reject a cash transaction if the amount tendered is less than the amount due. Us
 
 ### Reservation availability
 
-- Check availability for the **entire requested date range**, not just the room's current occupancy label.
-- A reservation normally overlaps an existing reservation when `existingCheckIn < requestedCheckOut` and `existingCheckOut > requestedCheckIn`, provided the existing reservation has a status that blocks new bookings.
+- Check availability for the **entire requested stay**, including its date and time, not just the room's current occupancy label.
+- A reservation normally overlaps an existing reservation when `existingCheckIn < requestedCheckOut` and `existingCheckOut > requestedCheckIn`, using the stay's date and time, provided the existing reservation has a status that blocks new bookings.
 - A room must also be operational and suitable for the requested stay. Rooms under maintenance or out of service must not be bookable.
 - Prevent conflicting bookings even when two users submit requests at nearly the same time. Availability checks should be supported by appropriate database transaction/locking or constraint strategies.
-- Validate that check-out is after check-in, and calculate nights from the dates rather than trusting a value submitted by the browser.
+- Validate that check-out is after check-in, and calculate nights from the dates rather than trusting a value submitted by the UI.
 - After checkout, a room may need to become **Dirty** rather than immediately **Available**. Housekeeping must mark it clean before it can be offered again if that is the chosen operational rule.
 
 ## Prerequisites
@@ -282,6 +282,8 @@ For an existing database that already has the guest, reservation, and transactio
 Apply `hotel-core/src/main/resources/db/migrations/003_customer_online_booking.sql` once after migrations 001 and 002. It adds customer account fields, online booking/payment/notification tables, and room dirty-time data. Existing `Receptionist` account roles are migrated to `Admin`. Then apply `hotel-core/src/main/resources/db/migrations/004_customer_discount_id_proof.sql` once to add the customer discount-ID proof path. Migrations 003 and 004 are not idempotent; back up the database and do not run either more than once. New databases already have these fields in `schema.sql` and do not need these migrations.
 
 Apply `hotel-core/src/main/resources/db/migrations/005_booking_history_ledger.sql` after migration 004. It creates the archival event ledger and imports existing Checked-Out and Cancelled reservations. New databases get the table from `schema.sql` and do not need migration 005.
+
+Apply `hotel-core/src/main/resources/db/migrations/006_allow_same_day_stays.sql` after migration 005 to an existing database. It updates the reservation date/time constraint to allow a same-day stay only when checkout is later than check-in. This migration is not idempotent; apply it once. A new database initialized from the current `schema.sql` already has the updated constraint and does not need the migrations.
 
 For local development, use a dedicated database user rather than the database administrator/root account where possible.
 
@@ -391,7 +393,7 @@ The `.gitignore` excludes generated Maven `target/` directories and NetBeans pri
 - Customer workspace navigation must not expose staff functions, staff-only screens, or administrative operations.
 - Customer screens must not reveal another guest's personal information or reservations. Protect all reservation lookup and cancellation flows with appropriate checks.
 - Use prepared statements or parameterized database operations to reduce SQL injection risk.
-- Validate all inputs in the shared core/business layer, including dates, prices, IDs, and reservation status changes. Do not trust validation performed only by a desktop form or web browser.
+- Validate all inputs in the shared core/business layer, including dates, prices, IDs, and reservation status changes. Do not rely only on desktop-form validation.
 - Keep credentials out of source control. If a real secret is accidentally committed, rotate it; deleting the file in a later commit does not erase it from Git history.
 - Use appropriate access controls for database accounts.
 - Do not store raw payment-card details. The current scope calls for cash transactions at checkout.
@@ -400,4 +402,4 @@ Because both workspaces use the same database, use appropriate database transact
 
 ## Project Documentation
 
-The implementation should stay consistent with the team's project guide and flowcharts, archived with the dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/). See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for the reviewed requirements and decisions. The Java Swing application contains separate administrator and customer workspaces and uses `hotel-core` for shared business rules. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.
+The implementation should stay consistent with the team's project guide and flowcharts, archived with the dashboard mockup in [`docs/reference/source-materials/`](docs/reference/source-materials/). See [`docs/reference/PROJECT_CONTEXT.md`](docs/reference/PROJECT_CONTEXT.md) for the reviewed requirements and current implementation scope. The Java Swing application contains separate administrator and customer workspaces and uses `hotel-core` for shared business rules. The `hotel-web` application was cancelled; do not describe or add it as part of the current project. Update this README as architecture decisions change, and keep feature checkboxes unchecked until each feature has been implemented and tested.
