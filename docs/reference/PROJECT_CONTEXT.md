@@ -1,10 +1,10 @@
 # Project context
 
-This note records the project scope used when designing the desktop dashboard. It is a reference for future UI work, not a claim that the planned system features are already implemented.
+This note records the current repository architecture and implemented desktop workflow scope alongside the original course requirements. It distinguishes code present in the repository from source-document requirements and remaining work; database-backed workflows require a compatible local schema and configuration.
 
 ## Source documents reviewed
 
-- `README.md` — architecture, planned desktop screens, room states, reservation states, and module responsibilities.
+- `README.md` — current architecture, desktop screens, room and reservation states, setup, and module responsibilities.
 - [`CS002_Object-Oriented Hotel Reservation System.pdf`](./source-materials/CS002_Object-Oriented%20Hotel%20Reservation%20System.pdf) — course requirements, room monitoring, room and reservation fields, and implementation scope.
 - [`Hotel_Reservation_Flowcharts.pdf`](./source-materials/Hotel_Reservation_Flowcharts.pdf) — whole-system flow (page 4), room monitoring (page 8), reservation review (page 16), and check-in/check-out flows (pages 18-19).
 - [`03-dashboard 1.png`](./source-materials/03-dashboard%201.png) — visual reference for the desktop dashboard.
@@ -14,8 +14,8 @@ Copies of the supplied PDFs and dashboard mockup are kept in `docs/reference/sou
 ## Application boundaries
 
 - `hotel-desktop` is the Java Swing application for administrator and customer workspaces.
-- `hotel-core` is the intended home for shared models, repositories, services, validation, and business rules.
-- Customer-facing screens are Java Swing only; there is no HTML/CSS/JavaScript or `hotel-web` module in this project scope.
+- `hotel-core` contains the shared models, repositories, services, validation, and business rules.
+- The proposed `hotel-web` application was cancelled. Customer-facing screens are Java Swing only; there is no HTML/CSS/JavaScript frontend or `hotel-web` module in this project.
 - The administrator dashboard is staff-only navigation and an overview, not a second implementation of room or reservation rules.
 
 ## Desktop window and navigation
@@ -58,7 +58,7 @@ Walk-in reservations start Confirmed and must check in today; online reservation
 
 Regular guests receive no discount and pay 12% tax. Discounted guests must have a verified discount ID; they receive a 20% discount and are tax-exempt. Cash payments below the amount due are rejected and change is calculated.
 
-The shared `schema.sql` includes the reservation rate/guest-count snapshots, transaction receipt reference, customer account/booking schema, payment records, notifications, discount-ID proof path, room dirty timestamp, and booking-history ledger. Customer online reservations are linked to their customer account and saved as Pending with a customer-entered payment amount; the UI suggests 50% of the total for the initial payment. Payments remain Partially Paid until staff verifies the full amount. Availability is checked over the date range and rechecked inside a transaction while the room row is locked. Payment and discount-ID proofs accept any file type up to 5 MB and are stored under generated names in a configurable directory outside the source tree. Supported payment-proof image types can be previewed in the administrator screen. Discounted guests must submit an ID proof, which remains unverified until staff review. Customer changes and cancellations are limited to Pending reservations. Existing databases apply migrations 001 through 005 once in order; migration 005 creates the booking-history ledger and backfills existing Checked-Out and Cancelled reservations. Legacy records use payment time or creation time as the best available event timestamp because older schemas did not track status-change times. New databases use the current schema directly. A live database connection is still required to exercise persistence at runtime.
+The shared `schema.sql` includes the reservation rate/guest-count snapshots, transaction receipt reference, customer account/booking schema, payment records, notifications, discount-ID proof path, room dirty timestamp, and booking-history ledger. Customer online reservations are linked to their customer account and saved as Pending with a customer-entered payment amount; the UI suggests 50% of the total for the initial payment. Payments remain Partially Paid until staff verifies the full amount. Availability is checked over the stay and rechecked inside a transaction while the room row is locked. Payment and discount-ID proofs accept any file type up to 5 MB and are stored under generated names in a configurable directory outside the source tree. Supported payment-proof image types can be previewed in the administrator screen. Discounted guests must submit an ID proof, which remains unverified until staff review. Customer changes and cancellations are limited to Pending reservations. Existing databases apply the migrations they need in sequence, through migration 006; migration 005 creates the booking-history ledger and backfills existing Checked-Out and Cancelled reservations, while migration 006 permits a same-day stay only when its checkout time is later than check-in. Apply applicable migrations only once. Legacy records use payment time or creation time as the best available event timestamp because older schemas did not track status-change times. New databases use the current schema directly. A live database connection is still required to exercise persistence at runtime.
 
 The customer dashboard uses the supplied hotel and amenity images. Customer receipts and administrator walk-in reservation receipts support PDF download. The unified administrator Reservations workspace includes online review, payment/discount-ID proof verification, and a calendar. Notifications are generated for booking decisions, payment verification, and check-out. A background task checks at startup and every minute for rooms that have been Dirty for at least one hour, sets them Clean, and refreshes dashboard and room-monitoring data.
 

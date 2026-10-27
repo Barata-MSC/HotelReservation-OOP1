@@ -2,7 +2,8 @@
 
 - Before project work, read [`docs/reference/PROJECT_CONTEXT.md`](../docs/reference/PROJECT_CONTEXT.md) for verified requirements, terminology, architecture boundaries, and current UI scope.
 - Consult the original course guide, flowcharts, and dashboard mockup in [`docs/reference/source-materials/`](../docs/reference/source-materials/) when a task depends on requirements or screen flow.
-- Treat README feature lists as planned work unless implementation and verification show otherwise. The current desktop dashboard is a static UI preview, not completed authentication or reservation functionality.
+- Treat feature checklists as completion trackers, not as proof that code is absent. The desktop application includes database-backed authentication, reservation workflows, customer screens, and dashboard summaries; verify code and tests before describing any capability as complete.
+- The proposed `hotel-web` application was cancelled. Keep customer-facing screens in the Java Swing `hotel-desktop` module; do not add a web module or describe the project as having a website.
 - Whenever project work changes files, finish with a ready-to-use pull request title and detailed description based on [`.github/PULL_REQUEST_TEMPLATE.md`](PULL_REQUEST_TEMPLATE.md). Include only verified changes and tests; mark tests that could not be run and why. Do not create, push, or open a pull request unless explicitly asked.
 
 # UI Integration Guide: Hotel Reservation System (read before building or wiring any screen)
@@ -18,8 +19,8 @@ Do not ask me to upload files. Read them from the repo. Before anything else, re
 - Do not mark README checkboxes. Update README/PROJECT_CONTEXT only where statements become false.
 
 ## Project map
-- hotel-core (com.hotel.core): config/DatabaseConnection, model/ (Room, enums/HousekeepingStatus, enums/RoomType, ...), repository/RoomRepository, service/RoomService, exception/ (ValidationException, RoomNotFoundException), resources/db/schema.sql.
-- hotel-desktop (com.hotel.desktop): HotelDesktop (the ONLY JFrame), auth/, dashboard/, nav/ (NavItem, SidebarPanel, WorkspaceShell), roomManagement/, roomMonitoring/, houseKeepingStatus/.
+- hotel-core (com.hotel.core): shared config, models/enums, JDBC repositories, `RoomService`, `ReservationService`, `CustomerReservationService`, `AuthenticationService`, exceptions, setup utility, schema and migrations.
+- hotel-desktop (com.hotel.desktop): `HotelDesktop` (the ONLY JFrame), auth/, customer/, dashboard/, nav/, reservation/, checkIn/, checkOut/, roomManagement/, roomMonitoring/, houseKeepingStatus/.
 - Customer-facing screens are Java Swing panels in hotel-desktop; do not add a web module or expose staff features in customer navigation.
 - ALL business rules live in hotel-core. Swing classes only display and call services. Validate in the core, not just the form.
 
@@ -33,9 +34,9 @@ Do not ask me to upload files. Read them from the repo. Before anything else, re
 ## Current core API (verify against the code)
 - Room (immutable): roomNumber, floor, roomType, capacity, description, pricePerDay (BigDecimal), occupied (boolean), housekeepingStatus.
 - RoomService: addRoom, updateRoom, findByNumber, search(Integer roomNumber, RoomType), findAll, setHousekeepingStatus(roomNumber, status), setOccupied(roomNumber, boolean). Throws SQLException and ValidationException. Maintenance/Out of Service is rejected when a checked-in guest is in the room.
-- Database (schema.sql): users, rooms, guests, reservations, transactions. rooms has is_occupied BOOLEAN and housekeeping_status ENUM('Clean','Dirty','Under Maintenance','Out of Service'). There is NO stored "Available" value.
+- Database (schema.sql): users, rooms, guests, reservations, transactions, customer payments, notifications, and booking-history data. rooms has is_occupied BOOLEAN and housekeeping_status ENUM('Clean','Dirty','Under Maintenance','Out of Service'). There is NO stored "Available" value.
 - Room monitoring status is derived with this precedence: Out of Service > Under Maintenance > Dirty > Occupied > Available. (The monitoring work adds RoomMonitoringStatus, RoomMonitoringSnapshot and a shared RoomMonitoringDataSource; verify they exist before using them, and use them rather than recomputing status in a screen.)
-- Reservations: schema exists; no reservation code yet. Occupancy comes from is_occupied until reservations are implemented. Once they are, availability must come from date-range overlap (existingCheckIn < requestedCheckOut AND existingCheckOut > requestedCheckIn, for Pending/Confirmed/Checked-In) and booking must be protected by a DB transaction with a row lock.
+- Reservations: reservation and customer-booking services are implemented in `hotel-core`. Staff and customer bookings check availability for the requested stay; creation rechecks availability while locking the room row. Pending, Confirmed, and Checked-In reservations block overlapping stays. Check-in/check-out update reservation and room state through core workflows. Verify the current service and repository behavior before changing these rules.
 
 ## Data and threading pattern for every DB-backed screen
 - Use the existing DatabaseConnection and prepared statements only. No credentials in source.
@@ -67,10 +68,10 @@ Billing: Regular 0% discount + 12% tax; Discounted 20% discount + 0% tax; reject
 - Housekeeping reads and writes real rooms through RoomService on a background thread, with loading/error/empty states. After a change, refresh Room Monitoring and the Dashboard through the shared data source.
 - After check-out a room becomes Dirty. Housekeeping marks it Clean, and only then can it be checked into again (P23).
 
-## Reservation and check-in/check-out screens (P5, P9, P10, P14, P15)
-Core first. Put these in hotel-core with tests; the screens only call them.
-- Guest is an abstract class; RegularGuest (0% discount, 12% tax) and DiscountedGuest (20% discount, 0% tax) implement the billing contract polymorphically. The GuestClassification enum has Regular and Discounted. Fields: full name, contact number, email, classification, discount ID type/number, discount_verified.
-- ReservationService owns: availability by date range (P9), save with a DB transaction and a row lock on the room plus a re-check of the overlap (P10), confirm/cancel (P12), check-in, check-out. Walk-in saves as Confirmed, Online saves as Pending. Nights are calculated from the dates on the server.
+## Reservation and check-in/check-out workflows (P5, P9, P10, P14, P15)
+These workflows are implemented in `hotel-core`; screens should call the existing services rather than duplicate business rules. Verify current behavior and tests before making changes.
+- `Guest` is a record containing guest identity, `GuestClassification`, discount ID details, verification state, and optional proof path. Billing uses the verified classification: Regular receives 0% discount and 12% tax; a verified Discounted guest receives 20% discount and 0% tax.
+- `ReservationService` handles staff availability, walk-in reservations, reservation review, check-in, check-out, and billing. `CustomerReservationService` handles customer booking, changes, cancellations, payments, and customer booking data. Walk-in reservations start Confirmed; Online reservations start Pending. Stay duration is calculated in the core.
 - Overlap rule: existingCheckIn < requestedCheckOut AND existingCheckOut > requestedCheckIn, counting Pending, Confirmed and Checked-In reservations. Rooms Under Maintenance or Out of Service are not bookable.
 - Cancellation is allowed only while Pending or Confirmed.
 
@@ -94,5 +95,5 @@ Check-out (P15, checkOutGuest):
 
 Screens:
 - Reservations (walk-in, online review/payment verification, and calendar tabs), Check in (CHECK_IN), and Check out (CHECK_OUT) stay as content-only panels registered in the shell. They show validation messages from the core, use background threads for database work, and refresh Room Monitoring, Dashboard, and Housekeeping after any change that affects rooms.
-- When reservations exist, Room Monitoring and availability must stop relying only on is_occupied: update RoomMonitoringSnapshot/the status derivation so Occupied comes from Checked-In reservations, and sync or retire is_occupied.
-- The Dashboard's reservation table and the sidebar badge on Online reservations ("3") are sample data today. Replace them with real counts when Online reservations is built.
+- Room Monitoring derives status from the shared room data and stored occupancy/housekeeping values. Do not introduce a second status calculation in a screen.
+- Dashboard room and reservation summaries are loaded from the database; do not reintroduce sample reservation rows or a hard-coded online-reservation badge.
